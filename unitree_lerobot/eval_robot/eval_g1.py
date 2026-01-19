@@ -105,6 +105,9 @@ def eval_policy(
             tau = robot_interface["arm_ik"].solve_tau(init_arm_pose)
             robot_interface["arm_ctrl"].ctrl_dual_arm(init_arm_pose, tau)
             time.sleep(1.0)  # Give time for the robot to move
+            idx = 0
+            latencies = []
+            fps_list = []
             # --- Run Main Loop ---
             logger_mp.info(f"Starting evaluation loop at {cfg.frequency} Hz.")
             while True:
@@ -124,6 +127,7 @@ def eval_policy(
                 ).float()
                 observation["observation.state"] = state_tensor
                 # 2. Get Action from Policy
+                inference_start = time.perf_counter()
                 action = predict_action(
                     observation,
                     policy,
@@ -135,6 +139,7 @@ def eval_policy(
                     use_dataset=cfg.use_dataset,
                     robot_type=None,
                 )
+                inference_time = (time.perf_counter() - inference_start) * 1000
                 action_np = action.cpu().numpy()
                 # 3. Execute Action
                 arm_action = action_np[:arm_dof]
@@ -156,9 +161,16 @@ def eval_policy(
 
                 if cfg.visualization:
                     visualization_data(idx, observation, state_tensor.numpy(), action_np, rerun_logger)
-                idx += 1
+
+                latencies.append(inference_time)
                 # Maintain frequency
                 time.sleep(max(0, (1.0 / cfg.frequency) - (time.perf_counter() - loop_start_time)))
+                fps_list.append(1.0 / (time.perf_counter() - loop_start_time))
+                
+                idx += 1
+                if idx % 30 == 0:
+                    avg_latency, avg_fps = np.mean(latencies[-30:]), np.mean(fps_list[-30:])
+                    logger_mp.info(f"[Perf] Step: {idx} | Inference: {avg_latency:.1f}ms | FPS: {avg_fps:.1f} (Max: {1000/avg_latency:.1f})")
     except Exception as e:
         logger_mp.info(f"An error occurred: {e}")
     finally:

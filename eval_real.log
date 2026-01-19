@@ -1,0 +1,201 @@
+INFO 2026-01-19 22:49:33 /eval_g1.py:183 {'arm': 'G1_29',
+ 'ee': 'inspire1',
+ 'episodes': 80,
+ 'frequency': 60.0,
+ 'headless': False,
+ 'motion': True,
+ 'policy': {'chunk_size': 100,
+            'device': 'cuda',
+            'dim_feedforward': 3200,
+            'dim_model': 512,
+            'dropout': 0.1,
+            'feedforward_activation': 'relu',
+            'input_features': {'observation.images.cam_head': {'shape': (3,
+                                                                         480,
+                                                                         640),
+                                                               'type': <FeatureType.VISUAL: 'VISUAL'>},
+                               'observation.state': {'shape': (26,),
+                                                     'type': <FeatureType.STATE: 'STATE'>}},
+            'kl_weight': 10.0,
+            'latent_dim': 32,
+            'license': None,
+            'n_action_steps': 100,
+            'n_decoder_layers': 1,
+            'n_encoder_layers': 4,
+            'n_heads': 8,
+            'n_obs_steps': 1,
+            'n_vae_encoder_layers': 4,
+            'normalization_mapping': {'ACTION': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
+                                      'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
+                                      'VISUAL': <NormalizationMode.MEAN_STD: 'MEAN_STD'>},
+            'optimizer_lr': 1e-05,
+            'optimizer_lr_backbone': 1e-05,
+            'optimizer_weight_decay': 0.0001,
+            'output_features': {'action': {'shape': (26,),
+                                           'type': <FeatureType.ACTION: 'ACTION'>}},
+            'pre_norm': False,
+            'pretrained_backbone_weights': 'ResNet18_Weights.IMAGENET1K_V1',
+            'pretrained_path': 'unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last/pretrained_model',
+            'private': None,
+            'push_to_hub': False,
+            'replace_final_stride_with_dilation': 0,
+            'repo_id': None,
+            'tags': None,
+            'temporal_ensemble_coeff': None,
+            'use_amp': False,
+            'use_vae': True,
+            'vision_backbone': 'resnet18'},
+ 'rename_map': {},
+ 'repo_id': 'ZUO66/handover_drinks',
+ 'root': '',
+ 'send_real_robot': True,
+ 'use_dataset': False,
+ 'visualization': True}
+INFO 2026-01-19 22:49:33 /eval_g1.py:191 Making policy.
+22:49:34:537625 INFO     Arguments: EvalRealConfig(repo_id='ZUO66/handover_drinks', policy=ACTConfig(n_obs_steps=1,             eval_g1.py:60
+                         input_features={'observation.state': PolicyFeature(type=<FeatureType.STATE: 'STATE'>, shape=(26,)),                 
+                         'observation.images.cam_head': PolicyFeature(type=<FeatureType.VISUAL: 'VISUAL'>, shape=(3, 480,                    
+                         640))}, output_features={'action': PolicyFeature(type=<FeatureType.ACTION: 'ACTION'>, shape=(26,))},                
+                         device='cuda', use_amp=False, push_to_hub=False, repo_id=None, private=None, tags=None, license=None,               
+                         pretrained_path='unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last/pretrained_model'              
+                         , chunk_size=100, n_action_steps=100, normalization_mapping={'VISUAL': <NormalizationMode.MEAN_STD:                 
+                         'MEAN_STD'>, 'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>, 'ACTION': <NormalizationMode.MEAN_STD:              
+                         'MEAN_STD'>}, vision_backbone='resnet18',                                                                           
+                         pretrained_backbone_weights='ResNet18_Weights.IMAGENET1K_V1', replace_final_stride_with_dilation=0,                 
+                         pre_norm=False, dim_model=512, n_heads=8, dim_feedforward=3200, feedforward_activation='relu',                      
+                         n_encoder_layers=4, n_decoder_layers=1, use_vae=True, latent_dim=32, n_vae_encoder_layers=4,                        
+                         temporal_ensemble_coeff=None, dropout=0.1, kl_weight=10.0, optimizer_lr=1e-05,                                      
+                         optimizer_weight_decay=0.0001, optimizer_lr_backbone=1e-05), root='', episodes=80, frequency=60.0,                  
+                         arm='G1_29', ee='inspire1', motion=True, headless=False, visualization=True, send_real_robot=True,                  
+                         use_dataset=False, rename_map={})                                                                                   
+22:49:36:649216 INFO     Initialize G1_29_ArmController...                                                                    robot_arm.py:70
+22:49:36:968649 WARNING  [G1_29_ArmController] Waiting to subscribe dds...                                                   robot_arm.py:112
+22:49:36:968731 INFO     [G1_29_ArmController] Subscribe dds ok.                                                             robot_arm.py:113
+22:49:36:969911 INFO     Current all body motor state q:                                                                     robot_arm.py:122
+                         [-0.54568  0.0132  -0.0265   0.81024 -0.33998 -0.03986 -0.35885 -0.00258  0.03052  0.65391 -0.34718                 
+                         0.02182 -0.01012  0.02642  0.07007 -0.52074  0.47884 -0.52076  1.17713  0.75902 -0.64913  1.13172                   
+                          -0.06795 -0.23905  0.12298  0.28298 -0.47831 -0.52638 -0.2908   0.       0.       0.       0.                      
+                         0.       0.     ]                                                                                                   
+                                                                                                                                             
+22:49:36:970068 INFO     Current two arms motor state q:                                                                     robot_arm.py:123
+                         [-0.52074  0.47884 -0.52076  1.17713  0.75902 -0.64913  1.13172 -0.06795 -0.23905  0.12298  0.28298                 
+                         -0.47831 -0.52638 -0.2908 ]                                                                                         
+                                                                                                                                             
+22:49:36:970091 INFO     Lock all joints except two arms...                                                                  robot_arm.py:124
+                                                                                                                                             
+22:49:36:970217 INFO     Lock OK!                                                                                            robot_arm.py:144
+                                                                                                                                             
+22:49:36:970679 INFO     Initialize G1_29_ArmController OK!                                                                  robot_arm.py:152
+                                                                                                                                             
+22:49:36:971635 INFO     Initialize Inspire_Controller...                                                            robot_hand_inspire.py:32
+22:49:37:185208 WARNING  [Inspire_Controller] Waiting to subscribe dds...                                            robot_hand_inspire.py:62
+Loading weights from local directory
+
+Image client has started, waiting to receive data...
+22:49:37:195322 WARNING  [Inspire_Controller] Waiting to subscribe dds...                                            robot_hand_inspire.py:62
+22:49:37:195348 INFO     [Inspire_Controller] Subscribe dds ok.                                                      robot_hand_inspire.py:63
+22:49:37:210911 INFO     Initialize Inspire_Controller OK!                                                           robot_hand_inspire.py:80
+                                                                                                                                             
+Enter 's' to initialize the robot and start the evaluation: 22:49:47:331961 INFO     Initializing robot to starting pose...                                                                eval_g1.py:104
+22:49:48:332292 INFO     Starting evaluation loop at 60.0 Hz.                                                                  eval_g1.py:112
+22:49:49:094602 INFO     [Perf] Step: 30 | Inference: 11.8ms | FPS: 57.0 (Max: 84.9)                                           eval_g1.py:173
+22:49:49:598090 INFO     [Perf] Step: 60 | Inference: 1.6ms | FPS: 59.6 (Max: 641.8)                                           eval_g1.py:173
+22:49:50:100486 INFO     [Perf] Step: 90 | Inference: 1.8ms | FPS: 59.7 (Max: 553.7)                                           eval_g1.py:173
+22:49:50:608698 INFO     [Perf] Step: 120 | Inference: 3.0ms | FPS: 59.2 (Max: 335.6)                                          eval_g1.py:173
+22:49:51:121755 INFO     [Perf] Step: 150 | Inference: 2.6ms | FPS: 58.9 (Max: 386.0)                                          eval_g1.py:173
+22:49:51:624300 INFO     [Perf] Step: 180 | Inference: 1.9ms | FPS: 59.7 (Max: 528.3)                                          eval_g1.py:173
+22:49:52:133301 INFO     [Perf] Step: 210 | Inference: 3.0ms | FPS: 59.1 (Max: 338.3)                                          eval_g1.py:173
+22:49:52:636303 INFO     [Perf] Step: 240 | Inference: 1.8ms | FPS: 59.7 (Max: 542.9)                                          eval_g1.py:173
+22:49:53:138471 INFO     [Perf] Step: 270 | Inference: 1.6ms | FPS: 59.8 (Max: 610.4)                                          eval_g1.py:173
+22:49:53:640601 INFO     [Perf] Step: 300 | Inference: 1.8ms | FPS: 59.8 (Max: 544.4)                                          eval_g1.py:173
+22:49:54:143089 INFO     [Perf] Step: 330 | Inference: 2.1ms | FPS: 59.7 (Max: 465.4)                                          eval_g1.py:173
+22:49:54:645796 INFO     [Perf] Step: 360 | Inference: 1.8ms | FPS: 59.7 (Max: 542.7)                                          eval_g1.py:173
+22:49:55:147965 INFO     [Perf] Step: 390 | Inference: 1.8ms | FPS: 59.8 (Max: 567.9)                                          eval_g1.py:173
+22:49:55:650751 INFO     [Perf] Step: 420 | Inference: 1.9ms | FPS: 59.7 (Max: 520.9)                                          eval_g1.py:173
+22:49:56:164518 INFO     [Perf] Step: 450 | Inference: 2.9ms | FPS: 58.9 (Max: 350.8)                                          eval_g1.py:173
+22:49:56:667496 INFO     [Perf] Step: 480 | Inference: 1.7ms | FPS: 59.7 (Max: 583.1)                                          eval_g1.py:173
+22:49:57:169853 INFO     [Perf] Step: 510 | Inference: 1.9ms | FPS: 59.7 (Max: 521.9)                                          eval_g1.py:173
+22:49:57:672207 INFO     [Perf] Step: 540 | Inference: 1.6ms | FPS: 59.7 (Max: 618.5)                                          eval_g1.py:173
+22:49:58:175154 INFO     [Perf] Step: 570 | Inference: 1.7ms | FPS: 59.7 (Max: 579.2)                                          eval_g1.py:173
+22:49:58:678297 INFO     [Perf] Step: 600 | Inference: 1.7ms | FPS: 59.6 (Max: 578.8)                                          eval_g1.py:173
+22:49:59:180861 INFO     [Perf] Step: 630 | Inference: 1.8ms | FPS: 59.7 (Max: 541.9)                                          eval_g1.py:173
+22:49:59:689927 INFO     [Perf] Step: 660 | Inference: 2.6ms | FPS: 59.1 (Max: 383.6)                                          eval_g1.py:173
+22:50:00:192118 INFO     [Perf] Step: 690 | Inference: 1.9ms | FPS: 59.8 (Max: 521.8)                                          eval_g1.py:173
+22:50:00:704278 INFO     [Perf] Step: 720 | Inference: 2.6ms | FPS: 59.0 (Max: 379.2)                                          eval_g1.py:173
+22:50:01:207041 INFO     [Perf] Step: 750 | Inference: 2.2ms | FPS: 59.7 (Max: 457.0)                                          eval_g1.py:173
+22:50:01:722530 INFO     [Perf] Step: 780 | Inference: 2.7ms | FPS: 58.8 (Max: 368.5)                                          eval_g1.py:173
+22:50:02:224577 INFO     [Perf] Step: 810 | Inference: 2.2ms | FPS: 59.8 (Max: 452.7)                                          eval_g1.py:173
+22:50:02:727752 INFO     [Perf] Step: 840 | Inference: 2.3ms | FPS: 59.6 (Max: 432.2)                                          eval_g1.py:173
+22:50:03:230342 INFO     [Perf] Step: 870 | Inference: 2.1ms | FPS: 59.7 (Max: 475.5)                                          eval_g1.py:173
+22:50:03:733132 INFO     [Perf] Step: 900 | Inference: 1.9ms | FPS: 59.7 (Max: 537.3)                                          eval_g1.py:173
+22:50:04:245900 INFO     [Perf] Step: 930 | Inference: 2.6ms | FPS: 58.9 (Max: 378.3)                                          eval_g1.py:173
+22:50:04:748448 INFO     [Perf] Step: 960 | Inference: 1.9ms | FPS: 59.7 (Max: 535.7)                                          eval_g1.py:173
+22:50:05:251305 INFO     [Perf] Step: 990 | Inference: 2.2ms | FPS: 59.7 (Max: 451.4)                                          eval_g1.py:173
+22:50:05:769554 INFO     [Perf] Step: 1020 | Inference: 3.5ms | FPS: 58.4 (Max: 287.3)                                         eval_g1.py:173
+22:50:06:272272 INFO     [Perf] Step: 1050 | Inference: 1.6ms | FPS: 59.7 (Max: 618.6)                                         eval_g1.py:173
+22:50:06:775065 INFO     [Perf] Step: 1080 | Inference: 1.8ms | FPS: 59.7 (Max: 547.0)                                         eval_g1.py:173
+22:50:07:277892 INFO     [Perf] Step: 1110 | Inference: 2.1ms | FPS: 59.7 (Max: 468.5)                                         eval_g1.py:173
+22:50:07:779942 INFO     [Perf] Step: 1140 | Inference: 1.6ms | FPS: 59.8 (Max: 610.9)                                         eval_g1.py:173
+22:50:08:297841 INFO     [Perf] Step: 1170 | Inference: 3.4ms | FPS: 58.3 (Max: 290.5)                                         eval_g1.py:173
+22:50:08:800297 INFO     [Perf] Step: 1200 | Inference: 1.9ms | FPS: 59.7 (Max: 520.1)                                         eval_g1.py:173
+22:50:09:303281 INFO     [Perf] Step: 1230 | Inference: 2.5ms | FPS: 59.7 (Max: 398.6)                                         eval_g1.py:173
+22:50:09:805487 INFO     [Perf] Step: 1260 | Inference: 1.6ms | FPS: 59.8 (Max: 616.6)                                         eval_g1.py:173
+22:50:10:308011 INFO     [Perf] Step: 1290 | Inference: 1.9ms | FPS: 59.7 (Max: 530.5)                                         eval_g1.py:173
+22:50:10:811488 INFO     [Perf] Step: 1320 | Inference: 2.2ms | FPS: 59.6 (Max: 456.1)                                         eval_g1.py:173
+22:50:11:313544 INFO     [Perf] Step: 1350 | Inference: 1.7ms | FPS: 59.8 (Max: 587.5)                                         eval_g1.py:173
+22:50:11:815547 INFO     [Perf] Step: 1380 | Inference: 1.8ms | FPS: 59.8 (Max: 557.1)                                         eval_g1.py:173
+22:50:12:317701 INFO     [Perf] Step: 1410 | Inference: 2.1ms | FPS: 59.8 (Max: 471.4)                                         eval_g1.py:173
+22:50:12:821091 INFO     [Perf] Step: 1440 | Inference: 2.2ms | FPS: 59.6 (Max: 447.8)                                         eval_g1.py:173
+22:50:13:324240 INFO     [Perf] Step: 1470 | Inference: 2.7ms | FPS: 59.6 (Max: 367.0)                                         eval_g1.py:173
+22:50:13:827157 INFO     [Perf] Step: 1500 | Inference: 1.7ms | FPS: 59.7 (Max: 584.0)                                         eval_g1.py:173
+22:50:14:329209 INFO     [Perf] Step: 1530 | Inference: 2.3ms | FPS: 59.8 (Max: 427.4)                                         eval_g1.py:173
+22:50:14:832330 INFO     [Perf] Step: 1560 | Inference: 1.7ms | FPS: 59.6 (Max: 584.8)                                         eval_g1.py:173
+22:50:15:334831 INFO     [Perf] Step: 1590 | Inference: 2.3ms | FPS: 59.7 (Max: 438.0)                                         eval_g1.py:173
+22:50:15:861004 INFO     [Perf] Step: 1620 | Inference: 4.7ms | FPS: 57.7 (Max: 212.4)                                         eval_g1.py:173
+22:50:16:363944 INFO     [Perf] Step: 1650 | Inference: 2.1ms | FPS: 59.7 (Max: 485.9)                                         eval_g1.py:173
+22:50:16:866632 INFO     [Perf] Step: 1680 | Inference: 2.2ms | FPS: 59.7 (Max: 458.1)                                         eval_g1.py:173
+22:50:17:377010 INFO     [Perf] Step: 1710 | Inference: 2.8ms | FPS: 59.0 (Max: 360.3)                                         eval_g1.py:173
+22:50:17:880625 INFO     [Perf] Step: 1740 | Inference: 2.2ms | FPS: 59.6 (Max: 449.4)                                         eval_g1.py:173
+22:50:18:382911 INFO     [Perf] Step: 1770 | Inference: 1.8ms | FPS: 59.7 (Max: 543.9)                                         eval_g1.py:173
+22:50:18:885456 INFO     [Perf] Step: 1800 | Inference: 1.8ms | FPS: 59.7 (Max: 570.3)                                         eval_g1.py:173
+22:50:19:387741 INFO     [Perf] Step: 1830 | Inference: 1.9ms | FPS: 59.7 (Max: 539.8)                                         eval_g1.py:173
+22:50:19:890640 INFO     [Perf] Step: 1860 | Inference: 1.7ms | FPS: 59.7 (Max: 572.6)                                         eval_g1.py:173
+22:50:20:393453 INFO     [Perf] Step: 1890 | Inference: 2.0ms | FPS: 59.7 (Max: 499.6)                                         eval_g1.py:173
+22:50:20:896061 INFO     [Perf] Step: 1920 | Inference: 2.0ms | FPS: 59.7 (Max: 493.5)                                         eval_g1.py:173
+22:50:21:399377 INFO     [Perf] Step: 1950 | Inference: 1.7ms | FPS: 59.6 (Max: 574.5)                                         eval_g1.py:173
+22:50:21:918370 INFO     [Perf] Step: 1980 | Inference: 3.0ms | FPS: 58.4 (Max: 335.5)                                         eval_g1.py:173
+22:50:22:433036 INFO     [Perf] Step: 2010 | Inference: 3.3ms | FPS: 58.6 (Max: 305.3)                                         eval_g1.py:173
+22:50:22:947329 INFO     [Perf] Step: 2040 | Inference: 4.0ms | FPS: 58.7 (Max: 249.5)                                         eval_g1.py:173
+22:50:23:450196 INFO     [Perf] Step: 2070 | Inference: 2.0ms | FPS: 59.7 (Max: 509.7)                                         eval_g1.py:173
+22:50:23:953998 INFO     [Perf] Step: 2100 | Inference: 1.6ms | FPS: 59.6 (Max: 622.5)                                         eval_g1.py:173
+22:50:24:456612 INFO     [Perf] Step: 2130 | Inference: 2.2ms | FPS: 59.7 (Max: 449.8)                                         eval_g1.py:173
+22:50:24:959397 INFO     [Perf] Step: 2160 | Inference: 1.5ms | FPS: 59.7 (Max: 650.6)                                         eval_g1.py:173
+22:50:25:474543 INFO     [Perf] Step: 2190 | Inference: 3.1ms | FPS: 58.6 (Max: 325.3)                                         eval_g1.py:173
+22:50:25:976846 INFO     [Perf] Step: 2220 | Inference: 2.1ms | FPS: 59.7 (Max: 487.2)                                         eval_g1.py:173
+22:50:26:479642 INFO     [Perf] Step: 2250 | Inference: 1.7ms | FPS: 59.7 (Max: 594.2)                                         eval_g1.py:173
+22:50:26:982641 INFO     [Perf] Step: 2280 | Inference: 1.9ms | FPS: 59.7 (Max: 530.1)                                         eval_g1.py:173
+22:50:27:485624 INFO     [Perf] Step: 2310 | Inference: 2.4ms | FPS: 59.7 (Max: 424.7)                                         eval_g1.py:173
+22:50:28:002010 INFO     [Perf] Step: 2340 | Inference: 3.0ms | FPS: 58.5 (Max: 328.7)                                         eval_g1.py:173
+22:50:28:504464 INFO     [Perf] Step: 2370 | Inference: 1.7ms | FPS: 59.7 (Max: 584.7)                                         eval_g1.py:173
+22:50:29:007218 INFO     [Perf] Step: 2400 | Inference: 2.0ms | FPS: 59.7 (Max: 491.3)                                         eval_g1.py:173
+22:50:29:509841 INFO     [Perf] Step: 2430 | Inference: 2.0ms | FPS: 59.7 (Max: 498.3)                                         eval_g1.py:173
+22:50:30:012064 INFO     [Perf] Step: 2460 | Inference: 1.8ms | FPS: 59.8 (Max: 556.9)                                         eval_g1.py:173
+22:50:30:514712 INFO     [Perf] Step: 2490 | Inference: 1.7ms | FPS: 59.7 (Max: 592.9)                                         eval_g1.py:173
+22:50:31:017461 INFO     [Perf] Step: 2520 | Inference: 2.2ms | FPS: 59.7 (Max: 464.3)                                         eval_g1.py:173
+22:50:31:520099 INFO     [Perf] Step: 2550 | Inference: 1.8ms | FPS: 59.7 (Max: 547.1)                                         eval_g1.py:173
+22:50:32:034107 INFO     [Perf] Step: 2580 | Inference: 2.7ms | FPS: 58.9 (Max: 366.9)                                         eval_g1.py:173
+22:50:32:536212 INFO     [Perf] Step: 2610 | Inference: 2.1ms | FPS: 59.8 (Max: 487.2)                                         eval_g1.py:173
+22:50:33:038573 INFO     [Perf] Step: 2640 | Inference: 1.8ms | FPS: 59.7 (Max: 548.7)                                         eval_g1.py:173
+22:50:33:540990 INFO     [Perf] Step: 2670 | Inference: 2.2ms | FPS: 59.7 (Max: 451.6)                                         eval_g1.py:173
+22:50:34:043818 INFO     [Perf] Step: 2700 | Inference: 1.6ms | FPS: 59.7 (Max: 607.9)                                         eval_g1.py:173
+22:50:34:546314 INFO     [Perf] Step: 2730 | Inference: 1.9ms | FPS: 59.7 (Max: 529.9)                                         eval_g1.py:173
+22:50:35:063055 INFO     [Perf] Step: 2760 | Inference: 3.5ms | FPS: 58.4 (Max: 283.2)                                         eval_g1.py:173
+22:50:35:565773 INFO     [Perf] Step: 2790 | Inference: 1.8ms | FPS: 59.7 (Max: 548.2)                                         eval_g1.py:173
+22:50:36:081935 INFO     [Perf] Step: 2820 | Inference: 3.3ms | FPS: 58.6 (Max: 301.5)                                         eval_g1.py:173
+22:50:36:585326 INFO     [Perf] Step: 2850 | Inference: 1.7ms | FPS: 59.6 (Max: 605.8)                                         eval_g1.py:173
+22:50:37:096141 INFO     [Perf] Step: 2880 | Inference: 2.4ms | FPS: 59.0 (Max: 417.1)                                         eval_g1.py:173
+22:50:37:598578 INFO     [Perf] Step: 2910 | Inference: 2.3ms | FPS: 59.7 (Max: 441.4)                                         eval_g1.py:173
+22:50:38:101681 INFO     [Perf] Step: 2940 | Inference: 1.7ms | FPS: 59.7 (Max: 605.7)                                         eval_g1.py:173
+22:50:38:605818 INFO     [Perf] Step: 2970 | Inference: 2.1ms | FPS: 59.5 (Max: 468.5)                                         eval_g1.py:173
+22:50:39:115157 INFO     [Perf] Step: 3000 | Inference: 2.3ms | FPS: 59.1 (Max: 435.2)                                         eval_g1.py:173
+22:50:39:617385 INFO     [Perf] Step: 3030 | Inference: 2.3ms | FPS: 59.8 (Max: 428.1)                                         eval_g1.py:173

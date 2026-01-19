@@ -74,22 +74,22 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
     if getattr(args, "sim", False):
         img_config = {
             "fps": 30,
-            "head_camera_type": "opencv",
+            "head_camera_type": "realsense",
             "head_camera_image_shape": [480, 640],  # Head camera resolution
             "head_camera_id_numbers": [0],
-            "wrist_camera_type": "opencv",
-            "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
-            "wrist_camera_id_numbers": [2, 4],
+            # "wrist_camera_type": "opencv",
+            # "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
+            # "wrist_camera_id_numbers": [2, 4],
         }
     else:
         img_config = {
             "fps": 30,
-            "head_camera_type": "opencv",
-            "head_camera_image_shape": [480, 1280],  # Head camera resolution
+            "head_camera_type": "realsense",
+            "head_camera_image_shape": [480, 640],  # Head camera resolution
             "head_camera_id_numbers": [0],
-            "wrist_camera_type": "opencv",
-            "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
-            "wrist_camera_id_numbers": [2, 4],
+            # "wrist_camera_type": "opencv",
+            # "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
+            # "wrist_camera_id_numbers": [2, 4],
         }
 
     ASPECT_RATIO_THRESHOLD = 2.0  # If the aspect ratio exceeds this value, it is considered binocular
@@ -113,6 +113,12 @@ def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
 
     tv_img_shm = shared_memory.SharedMemory(create=True, size=np.prod(tv_img_shape) * np.uint8().itemsize)
     tv_img_array = np.ndarray(tv_img_shape, dtype=np.uint8, buffer=tv_img_shm.buf)
+
+     # === wrist = None ===
+    wrist_img_array = None
+    wrist_img_shm = None
+    wrist_img_shape = None
+    # ============================   
 
     if WRIST and getattr(args, "sim", False):
         wrist_img_shape = (img_config["wrist_camera_image_shape"][0], img_config["wrist_camera_image_shape"][1] * 2, 3)
@@ -238,8 +244,11 @@ def process_images_and_observations(
     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
 ):
     """Processes images and generates observations."""
-    current_tv_image = tv_img_array.copy()
-    current_wrist_image = wrist_img_array.copy() if has_wrist_cam else None
+    import cv2
+
+    # OpenCV returns BGR, but training data uses RGB, so convert
+    current_tv_image = cv2.cvtColor(tv_img_array.copy(), cv2.COLOR_BGR2RGB)
+    current_wrist_image = cv2.cvtColor(wrist_img_array.copy(), cv2.COLOR_BGR2RGB) if has_wrist_cam else None
 
     left_top_cam = current_tv_image[:, : tv_img_shape[1] // 2] if is_binocular else current_tv_image
     right_top_cam = current_tv_image[:, tv_img_shape[1] // 2 :] if is_binocular else None
@@ -249,11 +258,16 @@ def process_images_and_observations(
         left_wrist_cam = current_wrist_image[:, : wrist_img_shape[1] // 2]
         right_wrist_cam = current_wrist_image[:, wrist_img_shape[1] // 2 :]
     observation = {
-        "observation.images.cam_left_high": torch.from_numpy(left_top_cam),
+        "observation.images.cam_head": torch.from_numpy(current_tv_image),
+        "observation.images.cam_left_high": torch.from_numpy(left_top_cam) if is_binocular else None,
         "observation.images.cam_right_high": torch.from_numpy(right_top_cam) if is_binocular else None,
         "observation.images.cam_left_wrist": torch.from_numpy(left_wrist_cam) if has_wrist_cam else None,
         "observation.images.cam_right_wrist": torch.from_numpy(right_wrist_cam) if has_wrist_cam else None,
     }
+
+    # Filter out None values to avoid errors during inference
+    observation = {k: v for k, v in observation.items() if v is not None}
+
     current_arm_q = arm_ctrl.get_current_dual_arm_q()
 
     return observation, current_arm_q

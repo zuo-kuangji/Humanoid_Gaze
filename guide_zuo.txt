@@ -79,10 +79,10 @@ python src/lerobot/scripts/lerobot_train.py \
   --policy.push_to_hub=false \
   --policy.tune_diffusion_model=false \
   --output_dir=outputs/train/groot_handover \
-  --steps=200000 \
-  --batch_size=64 \
-  --num_workers=4 \
-  --save_freq=10000 \
+  --steps=20000 \
+  --batch_size=32 \
+  --num_workers=8 \
+  --save_freq=5000 \
   --save_checkpoint=true \
   --wandb.enable=true \
   --wandb.project=zuo_handover \
@@ -106,22 +106,12 @@ python src/lerobot/scripts/lerobot_train.py \
   --job_name=groot_training
 
 
-python unitree_lerobot/eval_robot/eval_g1.py \
-  --policy.path=unitree_lerobot/lerobot/outputs/train/2025-12-25/14-34-29_diffusion/checkpoints/140000/pretrained_model \
-  --repo_id=ZUO66/handover_drinks \
-  --root="" \
-  --episodes=120 \
-  --frequency=10 \
-  --arm="G1_29" \
-  --ee="inspire1" \
-  --visualization=true \
-  --send_real_robot=true 2>&1 | tee eval_real.log
 
-Real inference
-python unitree_lerobot/eval_robot/eval_g1.py   --policy.path=unitree_lerobot/lerobot/outputs/train/2025-12-25/14-34-29_diffusion/checkpoints/160000/pretrained_model   --repo_id=ZUO66/handover_drinks   --root=""   --episodes=80   --frequency=30   --motion=True   --arm="G1_29"   --ee="inspire1"   --visualization=true   --send_real_robot=true   --policy.num_inference_steps=25   2>&1 | tee eval_real.log
+
+===============================Real inference===================================
 
 python unitree_lerobot/eval_robot/eval_g1.py \
-  --policy.path=unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000/pretrained_model \
+  --policy.path=unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000_1/pretrained_model \
   --repo_id=ZUO66/handover_drinks \
   --root="" \
   --episodes=80 \
@@ -135,7 +125,7 @@ python unitree_lerobot/eval_robot/eval_g1.py \
 
 
 python unitree_lerobot/eval_robot/eval_g1.py \
-  --policy.path=unitree_IL_lerobot/unitree_lerobot/lerobot/outputs/train/2026-01-05/20-17-15_act/checkpoints/last/pretrained_model \
+  --policy.path=unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last \
   --repo_id=ZUO66/handover_drinks \
   --root="" \
   --episodes=80 \
