@@ -1,201 +1,132 @@
-INFO 2026-01-19 22:49:33 /eval_g1.py:183 {'arm': 'G1_29',
+INFO 2026-01-20 13:16:33 _dataset.py:176 {'arm': 'G1_29',
  'ee': 'inspire1',
- 'episodes': 80,
- 'frequency': 60.0,
+ 'episodes': 0,
+ 'frequency': 30.0,
  'headless': False,
  'motion': True,
- 'policy': {'chunk_size': 100,
+ 'policy': {'balance_dataset_weights': True,
+            'balance_trajectory_weights': True,
+            'base_model_path': 'nvidia/GR00T-N1.5-3B',
+            'batch_size': 32,
+            'chunk_size': 50,
+            'dataloader_num_workers': 8,
+            'dataset_paths': None,
             'device': 'cuda',
-            'dim_feedforward': 3200,
-            'dim_model': 512,
-            'dropout': 0.1,
-            'feedforward_activation': 'relu',
+            'embodiment_tag': 'new_embodiment',
+            'image_size': (224, 224),
             'input_features': {'observation.images.cam_head': {'shape': (3,
                                                                          480,
                                                                          640),
                                                                'type': <FeatureType.VISUAL: 'VISUAL'>},
                                'observation.state': {'shape': (26,),
                                                      'type': <FeatureType.STATE: 'STATE'>}},
-            'kl_weight': 10.0,
-            'latent_dim': 32,
             'license': None,
-            'n_action_steps': 100,
-            'n_decoder_layers': 1,
-            'n_encoder_layers': 4,
-            'n_heads': 8,
+            'lora_alpha': 16,
+            'lora_dropout': 0.1,
+            'lora_full_model': False,
+            'lora_rank': 0,
+            'max_action_dim': 32,
+            'max_state_dim': 64,
+            'max_steps': 10000,
+            'n_action_steps': 50,
             'n_obs_steps': 1,
-            'n_vae_encoder_layers': 4,
             'normalization_mapping': {'ACTION': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
                                       'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
-                                      'VISUAL': <NormalizationMode.MEAN_STD: 'MEAN_STD'>},
-            'optimizer_lr': 1e-05,
-            'optimizer_lr_backbone': 1e-05,
-            'optimizer_weight_decay': 0.0001,
+                                      'VISUAL': <NormalizationMode.IDENTITY: 'IDENTITY'>},
+            'optimizer_betas': (0.95, 0.999),
+            'optimizer_eps': 1e-08,
+            'optimizer_lr': 0.0001,
+            'optimizer_weight_decay': 1e-05,
+            'output_dir': './tmp/gr00t',
             'output_features': {'action': {'shape': (26,),
                                            'type': <FeatureType.ACTION: 'ACTION'>}},
-            'pre_norm': False,
-            'pretrained_backbone_weights': 'ResNet18_Weights.IMAGENET1K_V1',
-            'pretrained_path': 'unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last/pretrained_model',
+            'pretrained_path': 'unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000_1/pretrained_model',
             'private': None,
             'push_to_hub': False,
-            'replace_final_stride_with_dilation': 0,
-            'repo_id': None,
+            'repo_id': 'ZUO66/groot_handover',
+            'report_to': 'wandb',
+            'resume': False,
+            'save_steps': 1000,
             'tags': None,
-            'temporal_ensemble_coeff': None,
+            'tokenizer_assets_repo': 'lerobot/eagle2hg-processor-groot-n1p5',
+            'tune_diffusion_model': False,
+            'tune_llm': False,
+            'tune_projector': True,
+            'tune_visual': False,
             'use_amp': False,
-            'use_vae': True,
-            'vision_backbone': 'resnet18'},
+            'use_bf16': True,
+            'video_backend': 'decord',
+            'warmup_ratio': 0.05},
  'rename_map': {},
  'repo_id': 'ZUO66/handover_drinks',
  'root': '',
- 'send_real_robot': True,
+ 'send_real_robot': False,
  'use_dataset': False,
  'visualization': True}
-INFO 2026-01-19 22:49:33 /eval_g1.py:191 Making policy.
-22:49:34:537625 INFO     Arguments: EvalRealConfig(repo_id='ZUO66/handover_drinks', policy=ACTConfig(n_obs_steps=1,             eval_g1.py:60
-                         input_features={'observation.state': PolicyFeature(type=<FeatureType.STATE: 'STATE'>, shape=(26,)),                 
-                         'observation.images.cam_head': PolicyFeature(type=<FeatureType.VISUAL: 'VISUAL'>, shape=(3, 480,                    
-                         640))}, output_features={'action': PolicyFeature(type=<FeatureType.ACTION: 'ACTION'>, shape=(26,))},                
-                         device='cuda', use_amp=False, push_to_hub=False, repo_id=None, private=None, tags=None, license=None,               
-                         pretrained_path='unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last/pretrained_model'              
-                         , chunk_size=100, n_action_steps=100, normalization_mapping={'VISUAL': <NormalizationMode.MEAN_STD:                 
-                         'MEAN_STD'>, 'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>, 'ACTION': <NormalizationMode.MEAN_STD:              
-                         'MEAN_STD'>}, vision_backbone='resnet18',                                                                           
-                         pretrained_backbone_weights='ResNet18_Weights.IMAGENET1K_V1', replace_final_stride_with_dilation=0,                 
-                         pre_norm=False, dim_model=512, n_heads=8, dim_feedforward=3200, feedforward_activation='relu',                      
-                         n_encoder_layers=4, n_decoder_layers=1, use_vae=True, latent_dim=32, n_vae_encoder_layers=4,                        
-                         temporal_ensemble_coeff=None, dropout=0.1, kl_weight=10.0, optimizer_lr=1e-05,                                      
-                         optimizer_weight_decay=0.0001, optimizer_lr_backbone=1e-05), root='', episodes=80, frequency=60.0,                  
-                         arm='G1_29', ee='inspire1', motion=True, headless=False, visualization=True, send_real_robot=True,                  
-                         use_dataset=False, rename_map={})                                                                                   
-22:49:36:649216 INFO     Initialize G1_29_ArmController...                                                                    robot_arm.py:70
-22:49:36:968649 WARNING  [G1_29_ArmController] Waiting to subscribe dds...                                                   robot_arm.py:112
-22:49:36:968731 INFO     [G1_29_ArmController] Subscribe dds ok.                                                             robot_arm.py:113
-22:49:36:969911 INFO     Current all body motor state q:                                                                     robot_arm.py:122
-                         [-0.54568  0.0132  -0.0265   0.81024 -0.33998 -0.03986 -0.35885 -0.00258  0.03052  0.65391 -0.34718                 
-                         0.02182 -0.01012  0.02642  0.07007 -0.52074  0.47884 -0.52076  1.17713  0.75902 -0.64913  1.13172                   
-                          -0.06795 -0.23905  0.12298  0.28298 -0.47831 -0.52638 -0.2908   0.       0.       0.       0.                      
-                         0.       0.     ]                                                                                                   
-                                                                                                                                             
-22:49:36:970068 INFO     Current two arms motor state q:                                                                     robot_arm.py:123
-                         [-0.52074  0.47884 -0.52076  1.17713  0.75902 -0.64913  1.13172 -0.06795 -0.23905  0.12298  0.28298                 
-                         -0.47831 -0.52638 -0.2908 ]                                                                                         
-                                                                                                                                             
-22:49:36:970091 INFO     Lock all joints except two arms...                                                                  robot_arm.py:124
-                                                                                                                                             
-22:49:36:970217 INFO     Lock OK!                                                                                            robot_arm.py:144
-                                                                                                                                             
-22:49:36:970679 INFO     Initialize G1_29_ArmController OK!                                                                  robot_arm.py:152
-                                                                                                                                             
-22:49:36:971635 INFO     Initialize Inspire_Controller...                                                            robot_hand_inspire.py:32
-22:49:37:185208 WARNING  [Inspire_Controller] Waiting to subscribe dds...                                            robot_hand_inspire.py:62
+INFO 2026-01-20 13:16:33 _dataset.py:184 Making policy.
+[GROOT] Flash Attention version: 2.7.4.post1
+Loading pretrained dual brain from nvidia/GR00T-N1.5-3B
+Tune backbone vision tower: False
+Tune backbone LLM: False
+Tune action head projector: True
+Tune action head DiT: False
+Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 123083.41it/s]
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 2026-01-20 13:16:34 le2_5_vl.py:105 min_dynamic_tiles: 1
+INFO 2026-01-20 13:16:34 le2_5_vl.py:106 max_dynamic_tiles: 12
+INFO 2026-01-20 13:16:34 gle2_5_vl.py:64 vision_config is None. Initializing the InternVisionConfig with default values.
+INFO 2026-01-20 13:16:34 gle2_5_vl.py:68 text_config is None. Initializing the LlamaConfig config with default values (`LlamaConfig`).
+INFO 2026-01-20 13:16:34 le2_5_vl.py:105 min_dynamic_tiles: 1
+INFO 2026-01-20 13:16:34 le2_5_vl.py:106 max_dynamic_tiles: 6
+INFO 2026-01-20 13:16:34 le2_5_vl.py:101 num_image_token: 256
+INFO 2026-01-20 13:16:34 le2_5_vl.py:102 mlp_checkpoint: False
+[GROOT] Copying vendor Eagle files to cache: /home/g1/unitree_groot1.5/unitree_lerobot/lerobot/src/lerobot/policies/groot/eagle2_hg_model -> /home/g1/.cache/huggingface/lerobot/lerobot/eagle2hg-processor-groot-n1p5
+[GROOT] Assets repo: lerobot/eagle2hg-processor-groot-n1p5 
+ Cache dir: /home/g1/.cache/huggingface/lerobot/lerobot/eagle2hg-processor-groot-n1p5
+Tune backbone llm: False
+Tune backbone visual: True
+Total number of DiT parameters:  550386688
+Total number of SelfAttentionTransformer parameters:  201433088
+Tune action head projector: True
+Tune action head diffusion model: True
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:00<00:00, 16.55it/s]Loading checkpoint shards: 100%|██████████| 3/3 [00:00<00:00,  8.13it/s]
+13:16:39:792653 INFO     Arguments: EvalRealConfig(repo_id='ZUO66/handover_drinks',                        eval_g1_dataset.py:58
+                         policy=GrootConfig(n_obs_steps=1, input_features={'observation.state':                                 
+                         PolicyFeature(type=<FeatureType.STATE: 'STATE'>, shape=(26,)),                                         
+                         'observation.images.cam_head': PolicyFeature(type=<FeatureType.VISUAL: 'VISUAL'>,                      
+                         shape=(3, 480, 640))}, output_features={'action':                                                      
+                         PolicyFeature(type=<FeatureType.ACTION: 'ACTION'>, shape=(26,))}, device='cuda',                       
+                         use_amp=False, push_to_hub=False, repo_id='ZUO66/groot_handover', private=None,                        
+                         tags=None, license=None,                                                                               
+                         pretrained_path='unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints                      
+                         /020000_1/pretrained_model', chunk_size=50, n_action_steps=50, max_state_dim=64,                       
+                         max_action_dim=32, normalization_mapping={'VISUAL': <NormalizationMode.IDENTITY:                       
+                         'IDENTITY'>, 'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>, 'ACTION':                              
+                         <NormalizationMode.MEAN_STD: 'MEAN_STD'>}, image_size=(224, 224),                                      
+                         base_model_path='nvidia/GR00T-N1.5-3B',                                                                
+                         tokenizer_assets_repo='lerobot/eagle2hg-processor-groot-n1p5',                                         
+                         embodiment_tag='new_embodiment', tune_llm=False, tune_visual=False,                                    
+                         tune_projector=True, tune_diffusion_model=False, lora_rank=0, lora_alpha=16,                           
+                         lora_dropout=0.1, lora_full_model=False, optimizer_lr=0.0001,                                          
+                         optimizer_betas=(0.95, 0.999), optimizer_eps=1e-08, optimizer_weight_decay=1e-05,                      
+                         warmup_ratio=0.05, use_bf16=True, video_backend='decord',                                              
+                         balance_dataset_weights=True, balance_trajectory_weights=True,                                         
+                         dataset_paths=None, output_dir='./tmp/gr00t', save_steps=1000, max_steps=10000,                        
+                         batch_size=32, dataloader_num_workers=8, report_to='wandb', resume=False),                             
+                         root='', episodes=0, frequency=30.0, arm='G1_29', ee='inspire1', motion=True,                          
+                         headless=False, visualization=True, send_real_robot=False, use_dataset=False,                          
+                         rename_map={})                                                                                         
+Tune backbone llm: False
+Tune backbone visual: False
+Warning: No backbone trainable parameters found.
+Tune action head projector: True
+Tune action head diffusion model: False
 Loading weights from local directory
-
-Image client has started, waiting to receive data...
-22:49:37:195322 WARNING  [Inspire_Controller] Waiting to subscribe dds...                                            robot_hand_inspire.py:62
-22:49:37:195348 INFO     [Inspire_Controller] Subscribe dds ok.                                                      robot_hand_inspire.py:63
-22:49:37:210911 INFO     Initialize Inspire_Controller OK!                                                           robot_hand_inspire.py:80
-                                                                                                                                             
-Enter 's' to initialize the robot and start the evaluation: 22:49:47:331961 INFO     Initializing robot to starting pose...                                                                eval_g1.py:104
-22:49:48:332292 INFO     Starting evaluation loop at 60.0 Hz.                                                                  eval_g1.py:112
-22:49:49:094602 INFO     [Perf] Step: 30 | Inference: 11.8ms | FPS: 57.0 (Max: 84.9)                                           eval_g1.py:173
-22:49:49:598090 INFO     [Perf] Step: 60 | Inference: 1.6ms | FPS: 59.6 (Max: 641.8)                                           eval_g1.py:173
-22:49:50:100486 INFO     [Perf] Step: 90 | Inference: 1.8ms | FPS: 59.7 (Max: 553.7)                                           eval_g1.py:173
-22:49:50:608698 INFO     [Perf] Step: 120 | Inference: 3.0ms | FPS: 59.2 (Max: 335.6)                                          eval_g1.py:173
-22:49:51:121755 INFO     [Perf] Step: 150 | Inference: 2.6ms | FPS: 58.9 (Max: 386.0)                                          eval_g1.py:173
-22:49:51:624300 INFO     [Perf] Step: 180 | Inference: 1.9ms | FPS: 59.7 (Max: 528.3)                                          eval_g1.py:173
-22:49:52:133301 INFO     [Perf] Step: 210 | Inference: 3.0ms | FPS: 59.1 (Max: 338.3)                                          eval_g1.py:173
-22:49:52:636303 INFO     [Perf] Step: 240 | Inference: 1.8ms | FPS: 59.7 (Max: 542.9)                                          eval_g1.py:173
-22:49:53:138471 INFO     [Perf] Step: 270 | Inference: 1.6ms | FPS: 59.8 (Max: 610.4)                                          eval_g1.py:173
-22:49:53:640601 INFO     [Perf] Step: 300 | Inference: 1.8ms | FPS: 59.8 (Max: 544.4)                                          eval_g1.py:173
-22:49:54:143089 INFO     [Perf] Step: 330 | Inference: 2.1ms | FPS: 59.7 (Max: 465.4)                                          eval_g1.py:173
-22:49:54:645796 INFO     [Perf] Step: 360 | Inference: 1.8ms | FPS: 59.7 (Max: 542.7)                                          eval_g1.py:173
-22:49:55:147965 INFO     [Perf] Step: 390 | Inference: 1.8ms | FPS: 59.8 (Max: 567.9)                                          eval_g1.py:173
-22:49:55:650751 INFO     [Perf] Step: 420 | Inference: 1.9ms | FPS: 59.7 (Max: 520.9)                                          eval_g1.py:173
-22:49:56:164518 INFO     [Perf] Step: 450 | Inference: 2.9ms | FPS: 58.9 (Max: 350.8)                                          eval_g1.py:173
-22:49:56:667496 INFO     [Perf] Step: 480 | Inference: 1.7ms | FPS: 59.7 (Max: 583.1)                                          eval_g1.py:173
-22:49:57:169853 INFO     [Perf] Step: 510 | Inference: 1.9ms | FPS: 59.7 (Max: 521.9)                                          eval_g1.py:173
-22:49:57:672207 INFO     [Perf] Step: 540 | Inference: 1.6ms | FPS: 59.7 (Max: 618.5)                                          eval_g1.py:173
-22:49:58:175154 INFO     [Perf] Step: 570 | Inference: 1.7ms | FPS: 59.7 (Max: 579.2)                                          eval_g1.py:173
-22:49:58:678297 INFO     [Perf] Step: 600 | Inference: 1.7ms | FPS: 59.6 (Max: 578.8)                                          eval_g1.py:173
-22:49:59:180861 INFO     [Perf] Step: 630 | Inference: 1.8ms | FPS: 59.7 (Max: 541.9)                                          eval_g1.py:173
-22:49:59:689927 INFO     [Perf] Step: 660 | Inference: 2.6ms | FPS: 59.1 (Max: 383.6)                                          eval_g1.py:173
-22:50:00:192118 INFO     [Perf] Step: 690 | Inference: 1.9ms | FPS: 59.8 (Max: 521.8)                                          eval_g1.py:173
-22:50:00:704278 INFO     [Perf] Step: 720 | Inference: 2.6ms | FPS: 59.0 (Max: 379.2)                                          eval_g1.py:173
-22:50:01:207041 INFO     [Perf] Step: 750 | Inference: 2.2ms | FPS: 59.7 (Max: 457.0)                                          eval_g1.py:173
-22:50:01:722530 INFO     [Perf] Step: 780 | Inference: 2.7ms | FPS: 58.8 (Max: 368.5)                                          eval_g1.py:173
-22:50:02:224577 INFO     [Perf] Step: 810 | Inference: 2.2ms | FPS: 59.8 (Max: 452.7)                                          eval_g1.py:173
-22:50:02:727752 INFO     [Perf] Step: 840 | Inference: 2.3ms | FPS: 59.6 (Max: 432.2)                                          eval_g1.py:173
-22:50:03:230342 INFO     [Perf] Step: 870 | Inference: 2.1ms | FPS: 59.7 (Max: 475.5)                                          eval_g1.py:173
-22:50:03:733132 INFO     [Perf] Step: 900 | Inference: 1.9ms | FPS: 59.7 (Max: 537.3)                                          eval_g1.py:173
-22:50:04:245900 INFO     [Perf] Step: 930 | Inference: 2.6ms | FPS: 58.9 (Max: 378.3)                                          eval_g1.py:173
-22:50:04:748448 INFO     [Perf] Step: 960 | Inference: 1.9ms | FPS: 59.7 (Max: 535.7)                                          eval_g1.py:173
-22:50:05:251305 INFO     [Perf] Step: 990 | Inference: 2.2ms | FPS: 59.7 (Max: 451.4)                                          eval_g1.py:173
-22:50:05:769554 INFO     [Perf] Step: 1020 | Inference: 3.5ms | FPS: 58.4 (Max: 287.3)                                         eval_g1.py:173
-22:50:06:272272 INFO     [Perf] Step: 1050 | Inference: 1.6ms | FPS: 59.7 (Max: 618.6)                                         eval_g1.py:173
-22:50:06:775065 INFO     [Perf] Step: 1080 | Inference: 1.8ms | FPS: 59.7 (Max: 547.0)                                         eval_g1.py:173
-22:50:07:277892 INFO     [Perf] Step: 1110 | Inference: 2.1ms | FPS: 59.7 (Max: 468.5)                                         eval_g1.py:173
-22:50:07:779942 INFO     [Perf] Step: 1140 | Inference: 1.6ms | FPS: 59.8 (Max: 610.9)                                         eval_g1.py:173
-22:50:08:297841 INFO     [Perf] Step: 1170 | Inference: 3.4ms | FPS: 58.3 (Max: 290.5)                                         eval_g1.py:173
-22:50:08:800297 INFO     [Perf] Step: 1200 | Inference: 1.9ms | FPS: 59.7 (Max: 520.1)                                         eval_g1.py:173
-22:50:09:303281 INFO     [Perf] Step: 1230 | Inference: 2.5ms | FPS: 59.7 (Max: 398.6)                                         eval_g1.py:173
-22:50:09:805487 INFO     [Perf] Step: 1260 | Inference: 1.6ms | FPS: 59.8 (Max: 616.6)                                         eval_g1.py:173
-22:50:10:308011 INFO     [Perf] Step: 1290 | Inference: 1.9ms | FPS: 59.7 (Max: 530.5)                                         eval_g1.py:173
-22:50:10:811488 INFO     [Perf] Step: 1320 | Inference: 2.2ms | FPS: 59.6 (Max: 456.1)                                         eval_g1.py:173
-22:50:11:313544 INFO     [Perf] Step: 1350 | Inference: 1.7ms | FPS: 59.8 (Max: 587.5)                                         eval_g1.py:173
-22:50:11:815547 INFO     [Perf] Step: 1380 | Inference: 1.8ms | FPS: 59.8 (Max: 557.1)                                         eval_g1.py:173
-22:50:12:317701 INFO     [Perf] Step: 1410 | Inference: 2.1ms | FPS: 59.8 (Max: 471.4)                                         eval_g1.py:173
-22:50:12:821091 INFO     [Perf] Step: 1440 | Inference: 2.2ms | FPS: 59.6 (Max: 447.8)                                         eval_g1.py:173
-22:50:13:324240 INFO     [Perf] Step: 1470 | Inference: 2.7ms | FPS: 59.6 (Max: 367.0)                                         eval_g1.py:173
-22:50:13:827157 INFO     [Perf] Step: 1500 | Inference: 1.7ms | FPS: 59.7 (Max: 584.0)                                         eval_g1.py:173
-22:50:14:329209 INFO     [Perf] Step: 1530 | Inference: 2.3ms | FPS: 59.8 (Max: 427.4)                                         eval_g1.py:173
-22:50:14:832330 INFO     [Perf] Step: 1560 | Inference: 1.7ms | FPS: 59.6 (Max: 584.8)                                         eval_g1.py:173
-22:50:15:334831 INFO     [Perf] Step: 1590 | Inference: 2.3ms | FPS: 59.7 (Max: 438.0)                                         eval_g1.py:173
-22:50:15:861004 INFO     [Perf] Step: 1620 | Inference: 4.7ms | FPS: 57.7 (Max: 212.4)                                         eval_g1.py:173
-22:50:16:363944 INFO     [Perf] Step: 1650 | Inference: 2.1ms | FPS: 59.7 (Max: 485.9)                                         eval_g1.py:173
-22:50:16:866632 INFO     [Perf] Step: 1680 | Inference: 2.2ms | FPS: 59.7 (Max: 458.1)                                         eval_g1.py:173
-22:50:17:377010 INFO     [Perf] Step: 1710 | Inference: 2.8ms | FPS: 59.0 (Max: 360.3)                                         eval_g1.py:173
-22:50:17:880625 INFO     [Perf] Step: 1740 | Inference: 2.2ms | FPS: 59.6 (Max: 449.4)                                         eval_g1.py:173
-22:50:18:382911 INFO     [Perf] Step: 1770 | Inference: 1.8ms | FPS: 59.7 (Max: 543.9)                                         eval_g1.py:173
-22:50:18:885456 INFO     [Perf] Step: 1800 | Inference: 1.8ms | FPS: 59.7 (Max: 570.3)                                         eval_g1.py:173
-22:50:19:387741 INFO     [Perf] Step: 1830 | Inference: 1.9ms | FPS: 59.7 (Max: 539.8)                                         eval_g1.py:173
-22:50:19:890640 INFO     [Perf] Step: 1860 | Inference: 1.7ms | FPS: 59.7 (Max: 572.6)                                         eval_g1.py:173
-22:50:20:393453 INFO     [Perf] Step: 1890 | Inference: 2.0ms | FPS: 59.7 (Max: 499.6)                                         eval_g1.py:173
-22:50:20:896061 INFO     [Perf] Step: 1920 | Inference: 2.0ms | FPS: 59.7 (Max: 493.5)                                         eval_g1.py:173
-22:50:21:399377 INFO     [Perf] Step: 1950 | Inference: 1.7ms | FPS: 59.6 (Max: 574.5)                                         eval_g1.py:173
-22:50:21:918370 INFO     [Perf] Step: 1980 | Inference: 3.0ms | FPS: 58.4 (Max: 335.5)                                         eval_g1.py:173
-22:50:22:433036 INFO     [Perf] Step: 2010 | Inference: 3.3ms | FPS: 58.6 (Max: 305.3)                                         eval_g1.py:173
-22:50:22:947329 INFO     [Perf] Step: 2040 | Inference: 4.0ms | FPS: 58.7 (Max: 249.5)                                         eval_g1.py:173
-22:50:23:450196 INFO     [Perf] Step: 2070 | Inference: 2.0ms | FPS: 59.7 (Max: 509.7)                                         eval_g1.py:173
-22:50:23:953998 INFO     [Perf] Step: 2100 | Inference: 1.6ms | FPS: 59.6 (Max: 622.5)                                         eval_g1.py:173
-22:50:24:456612 INFO     [Perf] Step: 2130 | Inference: 2.2ms | FPS: 59.7 (Max: 449.8)                                         eval_g1.py:173
-22:50:24:959397 INFO     [Perf] Step: 2160 | Inference: 1.5ms | FPS: 59.7 (Max: 650.6)                                         eval_g1.py:173
-22:50:25:474543 INFO     [Perf] Step: 2190 | Inference: 3.1ms | FPS: 58.6 (Max: 325.3)                                         eval_g1.py:173
-22:50:25:976846 INFO     [Perf] Step: 2220 | Inference: 2.1ms | FPS: 59.7 (Max: 487.2)                                         eval_g1.py:173
-22:50:26:479642 INFO     [Perf] Step: 2250 | Inference: 1.7ms | FPS: 59.7 (Max: 594.2)                                         eval_g1.py:173
-22:50:26:982641 INFO     [Perf] Step: 2280 | Inference: 1.9ms | FPS: 59.7 (Max: 530.1)                                         eval_g1.py:173
-22:50:27:485624 INFO     [Perf] Step: 2310 | Inference: 2.4ms | FPS: 59.7 (Max: 424.7)                                         eval_g1.py:173
-22:50:28:002010 INFO     [Perf] Step: 2340 | Inference: 3.0ms | FPS: 58.5 (Max: 328.7)                                         eval_g1.py:173
-22:50:28:504464 INFO     [Perf] Step: 2370 | Inference: 1.7ms | FPS: 59.7 (Max: 584.7)                                         eval_g1.py:173
-22:50:29:007218 INFO     [Perf] Step: 2400 | Inference: 2.0ms | FPS: 59.7 (Max: 491.3)                                         eval_g1.py:173
-22:50:29:509841 INFO     [Perf] Step: 2430 | Inference: 2.0ms | FPS: 59.7 (Max: 498.3)                                         eval_g1.py:173
-22:50:30:012064 INFO     [Perf] Step: 2460 | Inference: 1.8ms | FPS: 59.8 (Max: 556.9)                                         eval_g1.py:173
-22:50:30:514712 INFO     [Perf] Step: 2490 | Inference: 1.7ms | FPS: 59.7 (Max: 592.9)                                         eval_g1.py:173
-22:50:31:017461 INFO     [Perf] Step: 2520 | Inference: 2.2ms | FPS: 59.7 (Max: 464.3)                                         eval_g1.py:173
-22:50:31:520099 INFO     [Perf] Step: 2550 | Inference: 1.8ms | FPS: 59.7 (Max: 547.1)                                         eval_g1.py:173
-22:50:32:034107 INFO     [Perf] Step: 2580 | Inference: 2.7ms | FPS: 58.9 (Max: 366.9)                                         eval_g1.py:173
-22:50:32:536212 INFO     [Perf] Step: 2610 | Inference: 2.1ms | FPS: 59.8 (Max: 487.2)                                         eval_g1.py:173
-22:50:33:038573 INFO     [Perf] Step: 2640 | Inference: 1.8ms | FPS: 59.7 (Max: 548.7)                                         eval_g1.py:173
-22:50:33:540990 INFO     [Perf] Step: 2670 | Inference: 2.2ms | FPS: 59.7 (Max: 451.6)                                         eval_g1.py:173
-22:50:34:043818 INFO     [Perf] Step: 2700 | Inference: 1.6ms | FPS: 59.7 (Max: 607.9)                                         eval_g1.py:173
-22:50:34:546314 INFO     [Perf] Step: 2730 | Inference: 1.9ms | FPS: 59.7 (Max: 529.9)                                         eval_g1.py:173
-22:50:35:063055 INFO     [Perf] Step: 2760 | Inference: 3.5ms | FPS: 58.4 (Max: 283.2)                                         eval_g1.py:173
-22:50:35:565773 INFO     [Perf] Step: 2790 | Inference: 1.8ms | FPS: 59.7 (Max: 548.2)                                         eval_g1.py:173
-22:50:36:081935 INFO     [Perf] Step: 2820 | Inference: 3.3ms | FPS: 58.6 (Max: 301.5)                                         eval_g1.py:173
-22:50:36:585326 INFO     [Perf] Step: 2850 | Inference: 1.7ms | FPS: 59.6 (Max: 605.8)                                         eval_g1.py:173
-22:50:37:096141 INFO     [Perf] Step: 2880 | Inference: 2.4ms | FPS: 59.0 (Max: 417.1)                                         eval_g1.py:173
-22:50:37:598578 INFO     [Perf] Step: 2910 | Inference: 2.3ms | FPS: 59.7 (Max: 441.4)                                         eval_g1.py:173
-22:50:38:101681 INFO     [Perf] Step: 2940 | Inference: 1.7ms | FPS: 59.7 (Max: 605.7)                                         eval_g1.py:173
-22:50:38:605818 INFO     [Perf] Step: 2970 | Inference: 2.1ms | FPS: 59.5 (Max: 468.5)                                         eval_g1.py:173
-22:50:39:115157 INFO     [Perf] Step: 3000 | Inference: 2.3ms | FPS: 59.1 (Max: 435.2)                                         eval_g1.py:173
-22:50:39:617385 INFO     [Perf] Step: 3030 | Inference: 2.3ms | FPS: 59.8 (Max: 428.1)                                         eval_g1.py:173
+Please enter the start signal (enter 's' to start the subsequent program):  0%|          | 0/580 [00:00<?, ?it/s]`use_fast` is set to `True` but the image processor class does not have a fast version.  Falling back to the slow version.
+  0%|          | 1/580 [00:01<10:51,  1.13s/it]  1%|          | 4/580 [00:01<02:18,  4.16it/s]  1%|          | 7/580 [00:01<01:15,  7.62it/s]  2%|▏         | 10/580 [00:01<00:50, 11.26it/s]  2%|▏         | 13/580 [00:01<00:39, 14.51it/s]  3%|▎         | 16/580 [00:01<00:31, 17.74it/s]  3%|▎         | 19/580 [00:01<00:30, 18.53it/s]  4%|▍         | 22/580 [00:01<00:26, 21.14it/s]  4%|▍         | 25/580 [00:01<00:23, 23.30it/s]  5%|▍         | 28/580 [00:02<00:22, 25.02it/s]  5%|▌         | 31/580 [00:02<00:21, 25.97it/s]  6%|▌         | 34/580 [00:02<00:22, 24.68it/s]  6%|▋         | 37/580 [00:02<00:21, 25.56it/s]  7%|▋         | 40/580 [00:02<00:21, 25.52it/s]  7%|▋         | 43/580 [00:02<00:20, 26.70it/s]  8%|▊         | 46/580 [00:02<00:19, 27.59it/s]  8%|▊         | 49/580 [00:02<00:22, 24.13it/s]  9%|▉         | 52/580 [00:03<00:20, 25.62it/s]  9%|▉         | 55/580 [00:03<00:19, 26.77it/s] 10%|█         | 58/580 [00:03<00:20, 24.93it/s] 11%|█         | 61/580 [00:03<00:21, 23.61it/s] 11%|█         | 64/580 [00:03<00:20, 25.20it/s] 12%|█▏        | 67/580 [00:03<00:21, 23.88it/s] 12%|█▏        | 70/580 [00:03<00:20, 25.42it/s] 13%|█▎        | 73/580 [00:03<00:19, 26.62it/s] 13%|█▎        | 76/580 [00:03<00:18, 27.41it/s] 14%|█▎        | 79/580 [00:04<00:17, 28.11it/s] 14%|█▍        | 82/580 [00:04<00:19, 25.40it/s] 15%|█▍        | 85/580 [00:04<00:18, 26.61it/s] 15%|█▌        | 88/580 [00:04<00:18, 26.38it/s] 16%|█▌        | 91/580 [00:04<00:17, 27.34it/s] 16%|█▌        | 94/580 [00:04<00:17, 28.06it/s] 17%|█▋        | 97/580 [00:04<00:18, 26.37it/s] 17%|█▋        | 100/580 [00:04<00:17, 27.34it/s] 18%|█▊        | 103/580 [00:04<00:16, 28.06it/s] 18%|█▊        | 106/580 [00:05<00:16, 28.58it/s] 19%|█▉        | 109/580 [00:05<00:16, 28.97it/s] 19%|█▉        | 112/580 [00:05<00:16, 29.24it/s] 20%|█▉        | 115/580 [00:05<00:19, 24.11it/s] 20%|██        | 118/580 [00:05<00:19, 23.62it/s] 21%|██        | 121/580 [00:05<00:18, 25.21it/s] 21%|██▏       | 124/580 [00:05<00:17, 26.45it/s] 22%|██▏       | 127/580 [00:05<00:17, 26.39it/s] 22%|██▏       | 130/580 [00:06<00:18, 23.84it/s] 23%|██▎       | 133/580 [00:06<00:17, 25.38it/s] 23%|██▎       | 136/580 [00:06<00:16, 26.58it/s] 24%|██▍       | 139/580 [00:06<00:16, 26.53it/s] 24%|██▍       | 142/580 [00:06<00:15, 27.46it/s] 25%|██▌       | 145/580 [00:06<00:17, 25.28it/s] 26%|██▌       | 148/580 [00:06<00:16, 26.51it/s] 26%|██▌       | 151/580 [00:06<00:15, 27.44it/s] 27%|██▋       | 154/580 [00:06<00:15, 28.14it/s] 27%|██▋       | 157/580 [00:06<00:14, 28.64it/s] 28%|██▊       | 160/580 [00:07<00:14, 29.00it/s] 28%|██▊       | 163/580 [00:07<00:17, 23.60it/s] 29%|██▊       | 166/580 [00:07<00:16, 25.20it/s] 29%|██▉       | 169/580 [00:07<00:15, 26.45it/s] 30%|██▉       | 172/580 [00:07<00:16, 24.44it/s] 30%|███       | 175/580 [00:07<00:15, 25.86it/s] 31%|███       | 178/580 [00:07<00:17, 23.62it/s] 31%|███       | 181/580 [00:07<00:15, 25.21it/s] 32%|███▏      | 184/580 [00:08<00:14, 26.46it/s] 32%|███▏      | 187/580 [00:08<00:14, 27.40it/s] 33%|███▎      | 190/580 [00:08<00:13, 28.11it/s] 33%|███▎      | 193/580 [00:08<00:16, 23.68it/s] 34%|███▍      | 196/580 [00:08<00:15, 25.26it/s] 34%|███▍      | 199/580 [00:08<00:14, 26.49it/s] 35%|███▍      | 202/580 [00:08<00:14, 26.10it/s] 35%|███▌      | 205/580 [00:08<00:13, 27.13it/s] 36%|███▌      | 208/580 [00:08<00:13, 27.91it/s] 36%|███▋      | 211/580 [00:09<00:16, 22.42it/s] 37%|███▋      | 214/580 [00:09<00:15, 23.16it/s] 37%|███▋      | 217/580 [00:09<00:14, 24.84it/s] 38%|███▊      | 220/580 [00:09<00:13, 26.17it/s] 38%|███▊      | 223/580 [00:09<00:13, 27.19it/s] 39%|███▉      | 226/580 [00:09<00:14, 23.82it/s] 39%|███▉      | 229/580 [00:09<00:13, 25.36it/s] 40%|████      | 232/580 [00:09<00:13, 26.21it/s] 41%|████      | 235/580 [00:10<00:12, 27.22it/s] 41%|████      | 238/580 [00:10<00:12, 27.97it/s] 42%|████▏     | 241/580 [00:10<00:14, 24.10it/s] 42%|████▏     | 244/580 [00:10<00:13, 25.59it/s] 43%|████▎     | 247/580 [00:10<00:12, 26.74it/s] 43%|████▎     | 250/580 [00:10<00:11, 27.62it/s] 44%|████▎     | 253/580 [00:10<00:11, 28.26it/s] 44%|████▍     | 256/580 [00:10<00:11, 28.74it/s] 45%|████▍     | 259/580 [00:10<00:11, 26.83it/s] 45%|████▌     | 262/580 [00:11<00:11, 27.68it/s] 46%|████▌     | 265/580 [00:11<00:11, 28.31it/s] 46%|████▌     | 268/580 [00:11<00:10, 28.77it/s] 47%|████▋     | 271/580 [00:11<00:10, 29.10it/s] 47%|████▋     | 274/580 [00:11<00:12, 25.01it/s] 48%|████▊     | 277/580 [00:11<00:13, 22.75it/s] 48%|████▊     | 280/580 [00:11<00:12, 24.51it/s] 49%|████▉     | 283/580 [00:11<00:11, 25.23it/s] 49%|████▉     | 286/580 [00:11<00:11, 25.23it/s] 50%|████▉     | 289/580 [00:12<00:13, 21.34it/s] 50%|█████     | 292/580 [00:12<00:12, 23.35it/s] 51%|█████     | 295/580 [00:12<00:12, 23.47it/s] 51%|█████▏    | 298/580 [00:12<00:11, 24.38it/s] 52%|█████▏    | 301/580 [00:12<00:10, 25.80it/s] 52%|█████▏    | 304/580 [00:12<00:10, 26.91it/s] 53%|█████▎    | 307/580 [00:12<00:10, 25.04it/s] 53%|█████▎    | 310/580 [00:12<00:10, 26.32it/s] 54%|█████▍    | 313/580 [00:13<00:09, 27.30it/s] 54%|█████▍    | 316/580 [00:13<00:09, 28.03it/s] 55%|█████▌    | 319/580 [00:13<00:09, 27.81it/s] 56%|█████▌    | 322/580 [00:13<00:10, 25.42it/s] 56%|█████▌    | 325/580 [00:13<00:09, 26.61it/s] 57%|█████▋    | 328/580 [00:13<00:10, 24.31it/s] 57%|█████▋    | 331/580 [00:13<00:09, 25.01it/s] 58%|█████▊    | 334/580 [00:13<00:09, 26.30it/s] 58%|█████▊    | 337/580 [00:14<00:09, 24.72it/s] 59%|█████▊    | 340/580 [00:14<00:09, 26.07it/s] 59%|█████▉    | 343/580 [00:14<00:08, 27.11it/s] 60%|█████▉    | 346/580 [00:14<00:08, 27.89it/s] 60%|██████    | 349/580 [00:14<00:08, 27.27it/s] 61%|██████    | 352/580 [00:14<00:08, 28.01it/s] 61%|██████    | 355/580 [00:14<00:09, 24.57it/s] 62%|██████▏   | 358/580 [00:14<00:08, 25.58it/s] 62%|██████▏   | 361/580 [00:14<00:08, 26.74it/s] 63%|██████▎   | 364/580 [00:14<00:07, 27.62it/s] 63%|██████▎   | 367/580 [00:15<00:07, 28.26it/s] 64%|██████▍   | 370/580 [00:15<00:08, 25.55it/s] 64%|██████▍   | 373/580 [00:15<00:08, 24.48it/s] 65%|██████▍   | 376/580 [00:15<00:07, 25.89it/s] 65%|██████▌   | 379/580 [00:15<00:07, 26.97it/s] 66%|██████▌   | 382/580 [00:15<00:07, 27.78it/s] 66%|██████▋   | 385/580 [00:15<00:07, 24.65it/s] 67%|██████▋   | 388/580 [00:15<00:07, 25.15it/s] 67%|██████▋   | 391/580 [00:16<00:07, 26.41it/s] 68%|██████▊   | 394/580 [00:16<00:06, 27.37it/s] 68%|██████▊   | 397/580 [00:16<00:06, 28.08it/s] 69%|██████▉   | 400/580 [00:16<00:06, 28.27it/s] 69%|██████▉   | 403/580 [00:16<00:07, 25.00it/s] 70%|███████   | 406/580 [00:16<00:07, 24.42it/s] 71%|███████   | 409/580 [00:16<00:06, 24.70it/s] 71%|███████   | 412/580 [00:16<00:06, 24.14it/s] 72%|███████▏  | 415/580 [00:17<00:07, 21.52it/s] 72%|███████▏  | 418/580 [00:17<00:07, 20.76it/s] 73%|███████▎  | 421/580 [00:17<00:06, 22.86it/s] 73%|███████▎  | 424/580 [00:17<00:06, 24.34it/s] 74%|███████▎  | 427/580 [00:17<00:05, 25.78it/s] 74%|███████▍  | 430/580 [00:17<00:05, 26.89it/s] 75%|███████▍  | 433/580 [00:17<00:06, 24.11it/s] 75%|███████▌  | 436/580 [00:17<00:05, 25.60it/s] 76%|███████▌  | 439/580 [00:17<00:05, 26.75it/s] 76%|███████▌  | 442/580 [00:18<00:04, 27.63it/s] 77%|███████▋  | 445/580 [00:18<00:04, 28.27it/s] 77%|███████▋  | 448/580 [00:18<00:04, 28.74it/s] 78%|███████▊  | 451/580 [00:18<00:05, 25.56it/s] 78%|███████▊  | 454/580 [00:18<00:04, 26.72it/s] 79%|███████▉  | 457/580 [00:18<00:04, 24.70it/s] 79%|███████▉  | 460/580 [00:18<00:04, 26.05it/s] 80%|███████▉  | 463/580 [00:18<00:04, 26.25it/s] 80%|████████  | 466/580 [00:19<00:04, 25.01it/s] 81%|████████  | 469/580 [00:19<00:04, 26.30it/s] 81%|████████▏ | 472/580 [00:19<00:04, 26.53it/s] 82%|████████▏ | 475/580 [00:19<00:03, 27.46it/s] 82%|████████▏ | 478/580 [00:19<00:03, 28.14it/s] 83%|████████▎ | 481/580 [00:19<00:04, 23.88it/s] 83%|████████▎ | 484/580 [00:19<00:03, 25.42it/s] 84%|████████▍ | 487/580 [00:19<00:03, 26.61it/s] 84%|████████▍ | 490/580 [00:19<00:03, 27.52it/s] 85%|████████▌ | 493/580 [00:19<00:03, 28.19it/s] 86%|████████▌ | 496/580 [00:20<00:02, 28.68it/s] 86%|████████▌ | 499/580 [00:20<00:03, 22.52it/s] 87%|████████▋ | 502/580 [00:20<00:03, 22.46it/s] 87%|████████▋ | 505/580 [00:20<00:03, 22.24it/s] 88%|████████▊ | 508/580 [00:20<00:03, 22.98it/s] 88%|████████▊ | 511/580 [00:20<00:02, 23.34it/s] 89%|████████▊ | 514/580 [00:20<00:03, 21.61it/s] 89%|████████▉ | 517/580 [00:21<00:02, 22.85it/s] 90%|████████▉ | 520/580 [00:21<00:02, 22.62it/s] 90%|█████████ | 523/580 [00:21<00:02, 24.40it/s] 91%|█████████ | 526/580 [00:21<00:02, 25.82it/s] 91%|█████████ | 529/580 [00:21<00:02, 23.22it/s] 92%|█████████▏| 532/580 [00:21<00:01, 24.89it/s] 92%|█████████▏| 535/580 [00:21<00:01, 26.20it/s] 93%|█████████▎| 538/580 [00:21<00:01, 27.21it/s] 93%|█████████▎| 541/580 [00:21<00:01, 27.19it/s] 94%|█████████▍| 544/580 [00:22<00:01, 27.94it/s] 94%|█████████▍| 547/580 [00:22<00:01, 23.96it/s] 95%|█████████▍| 550/580 [00:22<00:01, 25.48it/s] 95%|█████████▌| 553/580 [00:22<00:01, 26.66it/s] 96%|█████████▌| 556/580 [00:22<00:00, 27.55it/s] 96%|█████████▋| 559/580 [00:22<00:00, 28.21it/s] 97%|█████████▋| 562/580 [00:22<00:00, 25.48it/s] 97%|█████████▋| 565/580 [00:22<00:00, 26.66it/s] 98%|█████████▊| 568/580 [00:23<00:00, 27.56it/s] 98%|█████████▊| 571/580 [00:23<00:00, 21.81it/s] 99%|█████████▉| 574/580 [00:23<00:00, 23.74it/s] 99%|█████████▉| 577/580 [00:23<00:00, 22.72it/s]100%|██████████| 580/580 [00:23<00:00, 22.84it/s]100%|██████████| 580/580 [00:23<00:00, 24.60it/s]
+INFO 2026-01-20 13:17:08 _dataset.py:204 End of eval
+RerunLogger: First data packet received. Auto-configuring...
+  - Using 'index' for time sequence.
+  - Detected State Key: 'observation.state'
+  - Detected Action Key: 'action'
+  - Detected Image Keys: ('observation.images.cam_head',)
