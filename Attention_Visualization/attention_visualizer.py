@@ -38,6 +38,9 @@ def _compute_attention_weights(attn_module, hidden_states, encoder_hidden_states
     seq_len_q = query.shape[1]
     seq_len_k = key.shape[1]
     
+    # DEBUG: Check if token length matches expectations
+    # print(f"DEBUG SEQ LEN K: {seq_len_k}")
+    
     # Get head_dim
     inner_dim = query.shape[-1]
     head_dim = inner_dim // NUM_HEADS
@@ -53,10 +56,10 @@ def _compute_attention_weights(attn_module, hidden_states, encoder_hidden_states
     # FOR MODEL: Standard Softmax
     attn_weights_model = F.softmax(attn_logits, dim=-1)
     
-    # FOR VISUALIZATION: Sigmoid (Multi-label classification style)
-    # This avoids the "winner-takes-all" problem of Softmax, allowing multiple
-    # independent regions to be highlighted (e.g., object + hand).
-    attn_weights_viz = torch.sigmoid(attn_logits)
+    # FOR VISUALIZATION: Reverting to Softmax
+    # Sigmoid + Sum Aggregation causes massive noise accumulation (Mean ~5000).
+    # Softmax ensures sparsity, suppressing background noise.
+    attn_weights_viz = F.softmax(attn_logits, dim=-1)
     
     return attn_weights_model, attn_weights_viz
 
@@ -235,16 +238,26 @@ def compute_vision_heatmap(
         align_corners=False
     ).squeeze(1)  # (B, H, W)
     
-    # Robust Normalization (Percentiles)
     heatmap_cpu = heatmap.cpu().numpy()
-    p_min = np.percentile(heatmap_cpu, 2)  # Bottom 1%
-    p_max = np.percentile(heatmap_cpu, 98) # Top 1% (ignore extreme outliers)
+
+    # Clip top 1% to handle extreme outliers (e.g. 2400 vs 200)
+    # User Request: "Throw away the highest part"
+    p_max = np.percentile(heatmap_cpu, 99)
     
-    heatmap = torch.clamp(heatmap, min=p_min, max=p_max)
+    # Clamp extreme values to p99
+    heatmap = torch.clamp(heatmap, max=float(p_max))
     
-    # Normalize to [0, 1] based on robust range
-    if p_max - p_min > 1e-7:
-        heatmap = (heatmap - p_min) / (p_max - p_min)
+    # Update stats for logging
+    heatmap_cpu_clipped = heatmap.cpu().numpy()
+    # print(f"DEBUG SOFTMAX STATS (Clipped @ {p_max:.4f}) | Min: {heatmap_cpu_clipped.min():.4f} | Max: {heatmap_cpu_clipped.max():.4f} | Mean: {heatmap_cpu_clipped.mean():.4f}")
+
+    # Normalize [Min, p_max] -> [0, 1]
+    # We use the NEW max (which is p_max) and the original min
+    heatmap_min = heatmap.min()
+    heatmap_max = heatmap.max()
+
+    if heatmap_max - heatmap_min > 1e-7:
+        heatmap = (heatmap - heatmap_min) / (heatmap_max - heatmap_min)
     else:
         heatmap = torch.zeros_like(heatmap)
     
@@ -285,6 +298,10 @@ def create_heatmap_overlay(
     # Apply colormap
     heatmap_colored = cmap(heatmap)[:, :, :3]  # (H, W, 3) float [0,1]
     heatmap_colored = (heatmap_colored * 255).astype(np.uint8)
+    
+    # Convert RGB (from Matplotlib) to BGR (for OpenCV)
+    import cv2
+    heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_RGB2BGR)
     
     # Blend
     overlay = (alpha * heatmap_colored + (1 - alpha) * image).astype(np.uint8)

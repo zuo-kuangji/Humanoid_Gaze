@@ -6,7 +6,7 @@
 
 可视化系统主要由两部分组成：
 1.  **核心可视化器 (`attention_visualizer.py`)**：负责拦截模型内部信号，计算注意力权重，生成热力图。
-2.  **评估流水线 (`eval_attention.py`)**：负责推理循环、视频帧捕获以及将热力图与相机图像同步。
+2.  **评估流水线 (`eval_attention.py` / `eval_attention_visualization.py`)**：负责推理循环、视频帧捕获以及将热力图与相机图像同步。
 
 ---
 
@@ -15,7 +15,7 @@
 ### 2.1 Monkey Patching 策略 (拦截机制)
 为了在不修改原始库代码的情况下捕获 Cross-Attention 权重，我们采用了 **Monkey Patching** (运行时动态替换) 技术拦截 `diffusers.models.attention.BasicTransformerBlock.forward`。
 
-### 2.2 Token 选择与 QK 计算 (Sigmoid 改进版)
+### 2.2 Token 选择与 QK 计算 (Softmax 策略)
 
 我们复现了 `AttnProcessor2_0` 内部的注意力计算逻辑，并根据 Explainable AI (XAI) 的最佳实践进行了关键改进。
 
@@ -24,47 +24,33 @@
 -   **Key ($K$)**: 来自 VLM (Eagle) 的视觉特征 (序列长度 294)。
 -   **Vision Token 切片**: 我们提取索引 **`[20 : 276]`**，对应 $16 \times 16$ 的图像 Patch。
 
-#### 2.2.2 计算公式：Sigmoid vs Softmax
-为了解决 Softmax 导致的"光斑效应"（Spotlight Issue），我们采用了**双轨制计算**：
+#### 2.2.2 计算公式：Softmax
+为了获得清晰、高信噪比的注意力热力图，我们采用 **Softmax** 策略，而非之前的 Sigmoid。
 
-1.  **模型推理 (For Model)**:
-    $$ W_{model} = \text{Softmax}\left( \frac{Q \cdot K^T}{\sqrt{d}} \right) $$
-    *   **作用**: 保证模型推理逻辑不变，维持机器人的正常动作。
-    *   **特性**: 竞争性（归一化为1），会导致极值抑制非极值。
+$$ \text{AttnViz} = \text{Softmax}(\frac{Q \cdot K^T}{\sqrt{d}}) $$
 
-2.  **可视化 (For Viz)**: 
-    $$ W_{viz} = \text{Sigmoid}\left( \frac{Q \cdot K^T}{\sqrt{d}} \right) $$
-    *   **作用**: 生成用于渲染的热力图。
-    *   **特性**: **独立性**。每个 Patch 独立打分，互不抑制。
-    *   **优势**: 能够同时点亮多个物体（例如同时关注这个杯子和那个盒子），而不是只显示最亮的那一个点。这与 *Attention Guided CAM* 的思想一致。
+**选择 Softmax 的原因**：
+*   **稀疏性 (Sparsity)**：Softmax 具有极强的竞争机制（归一化为1），能够强制压制无关背景（Background Suppression），使非关注区域的权重接近于 0。
+*   **抗噪能力**：真实的 Cross-Attention 包含 **12,800 条路径**（8层 × 32头 × 50 Token）。如果是 Sigmoid（底噪约 0.5），叠加后的背景噪音高达 6000+，完全淹没信号。而 Softmax 将底噪压至几乎为零，使得 **SUM 聚合** 成为可能。
 
 ### 2.3 聚合策略 (Aggregation)
 
-我们对 Sigmoid 输出的 $W_{viz}$ 进行聚合：
-
-#### Step 1: 层聚合 (Layer Aggregation) -> SUM
--   **操作**: 对 8 个 Cross-Attention 层求**和 (Sum)**。
--   **含义**: 累积不同层级 (Layer 0, 2, ..., 14) 对视觉特征的关注总证据量。
-
-#### Step 2: 头聚合 (Head Aggregation) -> SUM
--   **操作**: 对 32 个 Attention Head 求**和 (Sum)**。
--   **含义**: 汇总所有注意力头发现的特征。
-
-#### Step 3: Query 聚合 (Query Aggregation) -> SUM
--   **操作**: 对 49 个 Action Token 求**和 (Sum)**。
--   **含义**: 动作序列整体对图像的总关注度。
+我们采用 **SUM** 聚合策略，以捕捉所有层和所有 Token 的综合影响：
+1.  **Layer Aggregation**: `SUM` (累加所有 Cross-Attention 层的贡献)
+2.  **Head Aggregation**: `SUM` (累加所有注意力头的贡献)
+3.  **Query Aggregation**: `SUM` (累加所有 Action Token 对该像素的关注)
 
 ### 2.4 后处理
 
 1.  **重塑与上采样**: $256 \rightarrow 16 \times 16 \rightarrow 480 \times 640$ (双线性插值)。
 2.  **鲁棒归一化**: 
-    -   保留了 5%-95% 的百分位截断逻辑，以进一步增强对比度，滤除极端的噪点。
+    -   保留了 2%-98% 的百分位截断逻辑，以进一步增强对比度，滤除极端的噪点。
 
 ---
 
 ## 3. 结果分析
 
-通过切换到 **Sigmoid**：
--   **光斑消失**: 不再只是几个孤立的高亮像素。
--   **轮廓显现**: 物体的完整形状（如杯身、手掌）能被完整覆盖。
--   **多点关注**: 如果画面中有多个相关物体，它们能同时被点亮，符合人类直觉。
+通过使用 **Softmax + SUM Aggregation**：
+-   **信噪比高**: 背景噪音几乎为零（蓝色），目标物体显著高亮（红色）。
+-   **累积效应**: 能够捕捉到多层、多头对同一区域的共同关注。
+-   **数值合理**: 聚合后的数值通常在几十到几百之间（取决于关注强度），避免了 Sigmoid 的数千级别底噪。
