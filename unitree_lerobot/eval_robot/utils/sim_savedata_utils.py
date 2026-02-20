@@ -174,11 +174,12 @@ class EvalRealConfig:
 
     root: str = ""
     episodes: int = 0
+    episode_index: int = 0
     frequency: float = 30.0
 
     # Basic control parameters
     arm: str = "G1_29"  # G1_29, G1_23
-    ee: str = "dex3"  # dex3, dex1, inspire1, brainco
+    ee: str = "dex3"  # dex3, dex1, inspire1/inspire_dfx, inspire_ftp, brainco
 
     # Mode flags
     motion: bool = False

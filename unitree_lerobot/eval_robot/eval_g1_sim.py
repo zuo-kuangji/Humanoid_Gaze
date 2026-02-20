@@ -116,9 +116,16 @@ def eval_policy(
             ]
         )
 
-        # Get initial pose from the first step of the dataset
-        from_idx = dataset.meta.episodes["dataset_from_index"][0]
+        # Select episode to initialize pose/task.
+        num_episodes = len(dataset.meta.episodes["dataset_from_index"])
+        episode_index = int(cfg.episode_index)
+        if episode_index < 0 or episode_index >= num_episodes:
+            raise ValueError(f"episode_index out of range: {episode_index} (valid: 0..{num_episodes - 1})")
+        from_idx = int(dataset.meta.episodes["dataset_from_index"][episode_index])
         step = dataset[from_idx]
+        logger_mp.info(
+            f"Using episode_index={episode_index}/{num_episodes - 1}, from_idx={from_idx}, task={step['task']}"
+        )
         init_arm_pose = step["observation.state"][:arm_dof].cpu().numpy()
 
         user_input = input("Enter 's' to initialize the robot and start the evaluation: ")

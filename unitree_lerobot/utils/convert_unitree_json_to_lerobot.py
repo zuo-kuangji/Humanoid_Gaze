@@ -4,6 +4,7 @@ Script Json to Lerobot.
 # --raw-dir     Corresponds to the directory of your JSON dataset
 # --repo-id     Your unique repo ID on Hugging Face Hub
 # --robot_type  The type of the robot used in the dataset (e.g., Unitree_Z1_Single, Unitree_Z1_Dual, Unitree_G1_Dex1, Unitree_G1_Dex3, Unitree_G1_Brainco, Unitree_G1_Inspire)
+# --vision-field Which visual modality to read from each frame (default: colors)
 # --push_to_hub Whether or not to upload the dataset to Hugging Face Hub (true or false)
 
 python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
@@ -11,6 +12,16 @@ python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
     --repo-id your_name/g1_grabcube_double_hand \
     --robot_type Unitree_G1_Dex3 \
     --push_to_hub
+
+# Overlay-only conversion (without editing all data.json files):
+# If --vision-field overlays and frame["overlays"] is missing, the script
+# will map frame["colors"] paths from "colors/xxx" to "overlays/xxx".
+python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
+    --raw-dir /path/to/raw_dataset \
+    --repo-id your_name/your_dataset_overlay \
+    --robot_type Unitree_G1_Inspire_Head \
+    --vision-field overlays \
+    --no-push-to-hub
 """
 
 import os
@@ -45,7 +56,7 @@ DEFAULT_DATASET_CONFIG = DatasetConfig()
 
 
 class JsonDataset:
-    def __init__(self, data_dirs: Path, robot_type: str) -> None:
+    def __init__(self, data_dirs: Path, robot_type: str, vision_field: str = "colors") -> None:
         """
         Initialize the dataset for loading and processing HDF5 files containing robot manipulation data.
 
@@ -56,6 +67,7 @@ class JsonDataset:
         assert robot_type is not None, "Robot type cannot be None"
         self.data_dirs = data_dirs
         self.json_file = "data.json"
+        self.vision_field = self._normalize_vision_field(vision_field)
 
         # Initialize paths and cache
         self._init_paths()
@@ -63,6 +75,47 @@ class JsonDataset:
         self.json_state_data_name = ROBOT_CONFIGS[robot_type].json_state_data_name
         self.json_action_data_name = ROBOT_CONFIGS[robot_type].json_action_data_name
         self.camera_to_image_key = ROBOT_CONFIGS[robot_type].camera_to_image_key
+
+    @staticmethod
+    def _normalize_vision_field(vision_field: str) -> str:
+        field_map = {
+            "color": "colors",
+            "colors": "colors",
+            "overlay": "overlays",
+            "overlays": "overlays",
+            "depth": "depths",
+            "depths": "depths",
+            "mask": "masks",
+            "masks": "masks",
+        }
+        if vision_field not in field_map:
+            valid = ", ".join(sorted(field_map))
+            raise ValueError(f"Unsupported vision_field: {vision_field}. Valid values: {valid}")
+        return field_map[vision_field]
+
+    @staticmethod
+    def _to_overlay_path(path: str) -> str:
+        if path.startswith("colors/"):
+            return "overlays/" + path[len("colors/") :]
+        return path.replace("/colors/", "/overlays/", 1)
+
+    def _resolve_frame_vision_paths(self, sample_data: dict) -> dict[str, str]:
+        paths = sample_data.get(self.vision_field)
+        if isinstance(paths, dict):
+            return paths
+
+        # Fallback for datasets that only keep colors in JSON while overlay images
+        # exist on disk with the same camera keys and file names.
+        if self.vision_field == "overlays":
+            color_paths = sample_data.get("colors")
+            if isinstance(color_paths, dict):
+                return {
+                    key: self._to_overlay_path(value)
+                    for key, value in color_paths.items()
+                    if isinstance(value, str)
+                }
+
+        return {}
 
     def _init_paths(self) -> None:
         """Initialize episode and task paths."""
@@ -137,7 +190,12 @@ class JsonDataset:
 
         images = defaultdict(list)
 
-        keys = episode_data["data"][0]["colors"].keys()
+        first_paths = self._resolve_frame_vision_paths(episode_data["data"][0])
+        if not first_paths:
+            # Fallback to configured camera keys to provide clear error messages per frame.
+            first_paths = {k: "" for k in self.camera_to_image_key}
+
+        keys = first_paths.keys()
         cameras = [key for key in keys if "depth" not in key]
 
         for camera in cameras:
@@ -146,13 +204,15 @@ class JsonDataset:
                 continue
 
             for sample_data in episode_data["data"]:
-                relative_path = sample_data["colors"].get(camera)
+                relative_path = self._resolve_frame_vision_paths(sample_data).get(camera)
                 if not relative_path:
                     continue
 
                 image_path = os.path.join(episode_path, relative_path)
                 if not os.path.exists(image_path):
-                    raise FileNotFoundError(f"Image path does not exist: {image_path}")
+                    raise FileNotFoundError(
+                        f"Image path does not exist: {image_path} (vision_field={self.vision_field}, camera={camera})"
+                    )
 
                 image = cv2.imread(image_path)
                 if image is None:
@@ -160,6 +220,12 @@ class JsonDataset:
 
                 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 images[image_key].append(image_rgb)
+
+        if not any(images.values()):
+            raise ValueError(
+                f"No images were loaded for vision_field='{self.vision_field}'. "
+                "Check JSON modality keys and image folders."
+            )
 
         return images
 
@@ -284,8 +350,9 @@ def populate_dataset(
     dataset: LeRobotDataset,
     raw_dir: Path,
     robot_type: str,
+    vision_field: str = "colors",
 ) -> LeRobotDataset:
-    json_dataset = JsonDataset(raw_dir, robot_type)
+    json_dataset = JsonDataset(raw_dir, robot_type, vision_field=vision_field)
     for i in tqdm.tqdm(range(len(json_dataset))):
         episode = json_dataset.get_item(i)
 
@@ -318,6 +385,7 @@ def json_to_lerobot(
     repo_id: str,
     robot_type: str,  # e.g., Unitree_Z1_Single, Unitree_Z1_Dual, Unitree_G1_Dex1, Unitree_G1_Dex3, Unitree_G1_Brainco, Unitree_G1_Inspire
     *,
+    vision_field: Literal["color", "colors", "overlay", "overlays", "depth", "depths", "mask", "masks"] = "colors",
     push_to_hub: bool = False,
     mode: Literal["video", "image"] = "video",
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
@@ -337,6 +405,7 @@ def json_to_lerobot(
         dataset,
         raw_dir,
         robot_type=robot_type,
+        vision_field=vision_field,
     )
 
     if push_to_hub:

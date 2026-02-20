@@ -66,10 +66,17 @@ def eval_policy(
         preprocessor.reset()
         postprocessor.reset()
 
-    # init pose  dataset.meta.episodes["dataset_from_index"][episode_index]
-    from_idx = dataset.meta.episodes["dataset_from_index"][0]
+    # Select episode range for replay/eval.
+    num_episodes = len(dataset.meta.episodes["dataset_from_index"])
+    episode_index = int(cfg.episode_index)
+    if episode_index < 0 or episode_index >= num_episodes:
+        raise ValueError(f"episode_index out of range: {episode_index} (valid: 0..{num_episodes - 1})")
+    from_idx = int(dataset.meta.episodes["dataset_from_index"][episode_index])
     step = dataset[from_idx]
-    to_idx = dataset.meta.episodes["dataset_to_index"][0]
+    to_idx = int(dataset.meta.episodes["dataset_to_index"][episode_index])
+    logger_mp.info(
+        f"Using episode_index={episode_index}/{num_episodes - 1}, from_idx={from_idx}, to_idx={to_idx}, task={step['task']}"
+    )
 
     ground_truth_actions = []
     predicted_actions = []

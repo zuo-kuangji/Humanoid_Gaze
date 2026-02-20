@@ -1,132 +1,0 @@
-INFO 2026-01-20 13:16:33 _dataset.py:176 {'arm': 'G1_29',
- 'ee': 'inspire1',
- 'episodes': 0,
- 'frequency': 30.0,
- 'headless': False,
- 'motion': True,
- 'policy': {'balance_dataset_weights': True,
-            'balance_trajectory_weights': True,
-            'base_model_path': 'nvidia/GR00T-N1.5-3B',
-            'batch_size': 32,
-            'chunk_size': 50,
-            'dataloader_num_workers': 8,
-            'dataset_paths': None,
-            'device': 'cuda',
-            'embodiment_tag': 'new_embodiment',
-            'image_size': (224, 224),
-            'input_features': {'observation.images.cam_head': {'shape': (3,
-                                                                         480,
-                                                                         640),
-                                                               'type': <FeatureType.VISUAL: 'VISUAL'>},
-                               'observation.state': {'shape': (26,),
-                                                     'type': <FeatureType.STATE: 'STATE'>}},
-            'license': None,
-            'lora_alpha': 16,
-            'lora_dropout': 0.1,
-            'lora_full_model': False,
-            'lora_rank': 0,
-            'max_action_dim': 32,
-            'max_state_dim': 64,
-            'max_steps': 10000,
-            'n_action_steps': 50,
-            'n_obs_steps': 1,
-            'normalization_mapping': {'ACTION': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
-                                      'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
-                                      'VISUAL': <NormalizationMode.IDENTITY: 'IDENTITY'>},
-            'optimizer_betas': (0.95, 0.999),
-            'optimizer_eps': 1e-08,
-            'optimizer_lr': 0.0001,
-            'optimizer_weight_decay': 1e-05,
-            'output_dir': './tmp/gr00t',
-            'output_features': {'action': {'shape': (26,),
-                                           'type': <FeatureType.ACTION: 'ACTION'>}},
-            'pretrained_path': 'unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000_1/pretrained_model',
-            'private': None,
-            'push_to_hub': False,
-            'repo_id': 'ZUO66/groot_handover',
-            'report_to': 'wandb',
-            'resume': False,
-            'save_steps': 1000,
-            'tags': None,
-            'tokenizer_assets_repo': 'lerobot/eagle2hg-processor-groot-n1p5',
-            'tune_diffusion_model': False,
-            'tune_llm': False,
-            'tune_projector': True,
-            'tune_visual': False,
-            'use_amp': False,
-            'use_bf16': True,
-            'video_backend': 'decord',
-            'warmup_ratio': 0.05},
- 'rename_map': {},
- 'repo_id': 'ZUO66/handover_drinks',
- 'root': '',
- 'send_real_robot': False,
- 'use_dataset': False,
- 'visualization': True}
-INFO 2026-01-20 13:16:33 _dataset.py:184 Making policy.
-[GROOT] Flash Attention version: 2.7.4.post1
-Loading pretrained dual brain from nvidia/GR00T-N1.5-3B
-Tune backbone vision tower: False
-Tune backbone LLM: False
-Tune action head projector: True
-Tune action head DiT: False
-Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 123083.41it/s]
-`torch_dtype` is deprecated! Use `dtype` instead!
-INFO 2026-01-20 13:16:34 le2_5_vl.py:105 min_dynamic_tiles: 1
-INFO 2026-01-20 13:16:34 le2_5_vl.py:106 max_dynamic_tiles: 12
-INFO 2026-01-20 13:16:34 gle2_5_vl.py:64 vision_config is None. Initializing the InternVisionConfig with default values.
-INFO 2026-01-20 13:16:34 gle2_5_vl.py:68 text_config is None. Initializing the LlamaConfig config with default values (`LlamaConfig`).
-INFO 2026-01-20 13:16:34 le2_5_vl.py:105 min_dynamic_tiles: 1
-INFO 2026-01-20 13:16:34 le2_5_vl.py:106 max_dynamic_tiles: 6
-INFO 2026-01-20 13:16:34 le2_5_vl.py:101 num_image_token: 256
-INFO 2026-01-20 13:16:34 le2_5_vl.py:102 mlp_checkpoint: False
-[GROOT] Copying vendor Eagle files to cache: /home/g1/unitree_groot1.5/unitree_lerobot/lerobot/src/lerobot/policies/groot/eagle2_hg_model -> /home/g1/.cache/huggingface/lerobot/lerobot/eagle2hg-processor-groot-n1p5
-[GROOT] Assets repo: lerobot/eagle2hg-processor-groot-n1p5 
- Cache dir: /home/g1/.cache/huggingface/lerobot/lerobot/eagle2hg-processor-groot-n1p5
-Tune backbone llm: False
-Tune backbone visual: True
-Total number of DiT parameters:  550386688
-Total number of SelfAttentionTransformer parameters:  201433088
-Tune action head projector: True
-Tune action head diffusion model: True
-Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:00<00:00, 16.55it/s]Loading checkpoint shards: 100%|██████████| 3/3 [00:00<00:00,  8.13it/s]
-13:16:39:792653 INFO     Arguments: EvalRealConfig(repo_id='ZUO66/handover_drinks',                        eval_g1_dataset.py:58
-                         policy=GrootConfig(n_obs_steps=1, input_features={'observation.state':                                 
-                         PolicyFeature(type=<FeatureType.STATE: 'STATE'>, shape=(26,)),                                         
-                         'observation.images.cam_head': PolicyFeature(type=<FeatureType.VISUAL: 'VISUAL'>,                      
-                         shape=(3, 480, 640))}, output_features={'action':                                                      
-                         PolicyFeature(type=<FeatureType.ACTION: 'ACTION'>, shape=(26,))}, device='cuda',                       
-                         use_amp=False, push_to_hub=False, repo_id='ZUO66/groot_handover', private=None,                        
-                         tags=None, license=None,                                                                               
-                         pretrained_path='unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints                      
-                         /020000_1/pretrained_model', chunk_size=50, n_action_steps=50, max_state_dim=64,                       
-                         max_action_dim=32, normalization_mapping={'VISUAL': <NormalizationMode.IDENTITY:                       
-                         'IDENTITY'>, 'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>, 'ACTION':                              
-                         <NormalizationMode.MEAN_STD: 'MEAN_STD'>}, image_size=(224, 224),                                      
-                         base_model_path='nvidia/GR00T-N1.5-3B',                                                                
-                         tokenizer_assets_repo='lerobot/eagle2hg-processor-groot-n1p5',                                         
-                         embodiment_tag='new_embodiment', tune_llm=False, tune_visual=False,                                    
-                         tune_projector=True, tune_diffusion_model=False, lora_rank=0, lora_alpha=16,                           
-                         lora_dropout=0.1, lora_full_model=False, optimizer_lr=0.0001,                                          
-                         optimizer_betas=(0.95, 0.999), optimizer_eps=1e-08, optimizer_weight_decay=1e-05,                      
-                         warmup_ratio=0.05, use_bf16=True, video_backend='decord',                                              
-                         balance_dataset_weights=True, balance_trajectory_weights=True,                                         
-                         dataset_paths=None, output_dir='./tmp/gr00t', save_steps=1000, max_steps=10000,                        
-                         batch_size=32, dataloader_num_workers=8, report_to='wandb', resume=False),                             
-                         root='', episodes=0, frequency=30.0, arm='G1_29', ee='inspire1', motion=True,                          
-                         headless=False, visualization=True, send_real_robot=False, use_dataset=False,                          
-                         rename_map={})                                                                                         
-Tune backbone llm: False
-Tune backbone visual: False
-Warning: No backbone trainable parameters found.
-Tune action head projector: True
-Tune action head diffusion model: False
-Loading weights from local directory
-Please enter the start signal (enter 's' to start the subsequent program):  0%|          | 0/580 [00:00<?, ?it/s]`use_fast` is set to `True` but the image processor class does not have a fast version.  Falling back to the slow version.
-  0%|          | 1/580 [00:01<10:51,  1.13s/it]  1%|          | 4/580 [00:01<02:18,  4.16it/s]  1%|          | 7/580 [00:01<01:15,  7.62it/s]  2%|▏         | 10/580 [00:01<00:50, 11.26it/s]  2%|▏         | 13/580 [00:01<00:39, 14.51it/s]  3%|▎         | 16/580 [00:01<00:31, 17.74it/s]  3%|▎         | 19/580 [00:01<00:30, 18.53it/s]  4%|▍         | 22/580 [00:01<00:26, 21.14it/s]  4%|▍         | 25/580 [00:01<00:23, 23.30it/s]  5%|▍         | 28/580 [00:02<00:22, 25.02it/s]  5%|▌         | 31/580 [00:02<00:21, 25.97it/s]  6%|▌         | 34/580 [00:02<00:22, 24.68it/s]  6%|▋         | 37/580 [00:02<00:21, 25.56it/s]  7%|▋         | 40/580 [00:02<00:21, 25.52it/s]  7%|▋         | 43/580 [00:02<00:20, 26.70it/s]  8%|▊         | 46/580 [00:02<00:19, 27.59it/s]  8%|▊         | 49/580 [00:02<00:22, 24.13it/s]  9%|▉         | 52/580 [00:03<00:20, 25.62it/s]  9%|▉         | 55/580 [00:03<00:19, 26.77it/s] 10%|█         | 58/580 [00:03<00:20, 24.93it/s] 11%|█         | 61/580 [00:03<00:21, 23.61it/s] 11%|█         | 64/580 [00:03<00:20, 25.20it/s] 12%|█▏        | 67/580 [00:03<00:21, 23.88it/s] 12%|█▏        | 70/580 [00:03<00:20, 25.42it/s] 13%|█▎        | 73/580 [00:03<00:19, 26.62it/s] 13%|█▎        | 76/580 [00:03<00:18, 27.41it/s] 14%|█▎        | 79/580 [00:04<00:17, 28.11it/s] 14%|█▍        | 82/580 [00:04<00:19, 25.40it/s] 15%|█▍        | 85/580 [00:04<00:18, 26.61it/s] 15%|█▌        | 88/580 [00:04<00:18, 26.38it/s] 16%|█▌        | 91/580 [00:04<00:17, 27.34it/s] 16%|█▌        | 94/580 [00:04<00:17, 28.06it/s] 17%|█▋        | 97/580 [00:04<00:18, 26.37it/s] 17%|█▋        | 100/580 [00:04<00:17, 27.34it/s] 18%|█▊        | 103/580 [00:04<00:16, 28.06it/s] 18%|█▊        | 106/580 [00:05<00:16, 28.58it/s] 19%|█▉        | 109/580 [00:05<00:16, 28.97it/s] 19%|█▉        | 112/580 [00:05<00:16, 29.24it/s] 20%|█▉        | 115/580 [00:05<00:19, 24.11it/s] 20%|██        | 118/580 [00:05<00:19, 23.62it/s] 21%|██        | 121/580 [00:05<00:18, 25.21it/s] 21%|██▏       | 124/580 [00:05<00:17, 26.45it/s] 22%|██▏       | 127/580 [00:05<00:17, 26.39it/s] 22%|██▏       | 130/580 [00:06<00:18, 23.84it/s] 23%|██▎       | 133/580 [00:06<00:17, 25.38it/s] 23%|██▎       | 136/580 [00:06<00:16, 26.58it/s] 24%|██▍       | 139/580 [00:06<00:16, 26.53it/s] 24%|██▍       | 142/580 [00:06<00:15, 27.46it/s] 25%|██▌       | 145/580 [00:06<00:17, 25.28it/s] 26%|██▌       | 148/580 [00:06<00:16, 26.51it/s] 26%|██▌       | 151/580 [00:06<00:15, 27.44it/s] 27%|██▋       | 154/580 [00:06<00:15, 28.14it/s] 27%|██▋       | 157/580 [00:06<00:14, 28.64it/s] 28%|██▊       | 160/580 [00:07<00:14, 29.00it/s] 28%|██▊       | 163/580 [00:07<00:17, 23.60it/s] 29%|██▊       | 166/580 [00:07<00:16, 25.20it/s] 29%|██▉       | 169/580 [00:07<00:15, 26.45it/s] 30%|██▉       | 172/580 [00:07<00:16, 24.44it/s] 30%|███       | 175/580 [00:07<00:15, 25.86it/s] 31%|███       | 178/580 [00:07<00:17, 23.62it/s] 31%|███       | 181/580 [00:07<00:15, 25.21it/s] 32%|███▏      | 184/580 [00:08<00:14, 26.46it/s] 32%|███▏      | 187/580 [00:08<00:14, 27.40it/s] 33%|███▎      | 190/580 [00:08<00:13, 28.11it/s] 33%|███▎      | 193/580 [00:08<00:16, 23.68it/s] 34%|███▍      | 196/580 [00:08<00:15, 25.26it/s] 34%|███▍      | 199/580 [00:08<00:14, 26.49it/s] 35%|███▍      | 202/580 [00:08<00:14, 26.10it/s] 35%|███▌      | 205/580 [00:08<00:13, 27.13it/s] 36%|███▌      | 208/580 [00:08<00:13, 27.91it/s] 36%|███▋      | 211/580 [00:09<00:16, 22.42it/s] 37%|███▋      | 214/580 [00:09<00:15, 23.16it/s] 37%|███▋      | 217/580 [00:09<00:14, 24.84it/s] 38%|███▊      | 220/580 [00:09<00:13, 26.17it/s] 38%|███▊      | 223/580 [00:09<00:13, 27.19it/s] 39%|███▉      | 226/580 [00:09<00:14, 23.82it/s] 39%|███▉      | 229/580 [00:09<00:13, 25.36it/s] 40%|████      | 232/580 [00:09<00:13, 26.21it/s] 41%|████      | 235/580 [00:10<00:12, 27.22it/s] 41%|████      | 238/580 [00:10<00:12, 27.97it/s] 42%|████▏     | 241/580 [00:10<00:14, 24.10it/s] 42%|████▏     | 244/580 [00:10<00:13, 25.59it/s] 43%|████▎     | 247/580 [00:10<00:12, 26.74it/s] 43%|████▎     | 250/580 [00:10<00:11, 27.62it/s] 44%|████▎     | 253/580 [00:10<00:11, 28.26it/s] 44%|████▍     | 256/580 [00:10<00:11, 28.74it/s] 45%|████▍     | 259/580 [00:10<00:11, 26.83it/s] 45%|████▌     | 262/580 [00:11<00:11, 27.68it/s] 46%|████▌     | 265/580 [00:11<00:11, 28.31it/s] 46%|████▌     | 268/580 [00:11<00:10, 28.77it/s] 47%|████▋     | 271/580 [00:11<00:10, 29.10it/s] 47%|████▋     | 274/580 [00:11<00:12, 25.01it/s] 48%|████▊     | 277/580 [00:11<00:13, 22.75it/s] 48%|████▊     | 280/580 [00:11<00:12, 24.51it/s] 49%|████▉     | 283/580 [00:11<00:11, 25.23it/s] 49%|████▉     | 286/580 [00:11<00:11, 25.23it/s] 50%|████▉     | 289/580 [00:12<00:13, 21.34it/s] 50%|█████     | 292/580 [00:12<00:12, 23.35it/s] 51%|█████     | 295/580 [00:12<00:12, 23.47it/s] 51%|█████▏    | 298/580 [00:12<00:11, 24.38it/s] 52%|█████▏    | 301/580 [00:12<00:10, 25.80it/s] 52%|█████▏    | 304/580 [00:12<00:10, 26.91it/s] 53%|█████▎    | 307/580 [00:12<00:10, 25.04it/s] 53%|█████▎    | 310/580 [00:12<00:10, 26.32it/s] 54%|█████▍    | 313/580 [00:13<00:09, 27.30it/s] 54%|█████▍    | 316/580 [00:13<00:09, 28.03it/s] 55%|█████▌    | 319/580 [00:13<00:09, 27.81it/s] 56%|█████▌    | 322/580 [00:13<00:10, 25.42it/s] 56%|█████▌    | 325/580 [00:13<00:09, 26.61it/s] 57%|█████▋    | 328/580 [00:13<00:10, 24.31it/s] 57%|█████▋    | 331/580 [00:13<00:09, 25.01it/s] 58%|█████▊    | 334/580 [00:13<00:09, 26.30it/s] 58%|█████▊    | 337/580 [00:14<00:09, 24.72it/s] 59%|█████▊    | 340/580 [00:14<00:09, 26.07it/s] 59%|█████▉    | 343/580 [00:14<00:08, 27.11it/s] 60%|█████▉    | 346/580 [00:14<00:08, 27.89it/s] 60%|██████    | 349/580 [00:14<00:08, 27.27it/s] 61%|██████    | 352/580 [00:14<00:08, 28.01it/s] 61%|██████    | 355/580 [00:14<00:09, 24.57it/s] 62%|██████▏   | 358/580 [00:14<00:08, 25.58it/s] 62%|██████▏   | 361/580 [00:14<00:08, 26.74it/s] 63%|██████▎   | 364/580 [00:14<00:07, 27.62it/s] 63%|██████▎   | 367/580 [00:15<00:07, 28.26it/s] 64%|██████▍   | 370/580 [00:15<00:08, 25.55it/s] 64%|██████▍   | 373/580 [00:15<00:08, 24.48it/s] 65%|██████▍   | 376/580 [00:15<00:07, 25.89it/s] 65%|██████▌   | 379/580 [00:15<00:07, 26.97it/s] 66%|██████▌   | 382/580 [00:15<00:07, 27.78it/s] 66%|██████▋   | 385/580 [00:15<00:07, 24.65it/s] 67%|██████▋   | 388/580 [00:15<00:07, 25.15it/s] 67%|██████▋   | 391/580 [00:16<00:07, 26.41it/s] 68%|██████▊   | 394/580 [00:16<00:06, 27.37it/s] 68%|██████▊   | 397/580 [00:16<00:06, 28.08it/s] 69%|██████▉   | 400/580 [00:16<00:06, 28.27it/s] 69%|██████▉   | 403/580 [00:16<00:07, 25.00it/s] 70%|███████   | 406/580 [00:16<00:07, 24.42it/s] 71%|███████   | 409/580 [00:16<00:06, 24.70it/s] 71%|███████   | 412/580 [00:16<00:06, 24.14it/s] 72%|███████▏  | 415/580 [00:17<00:07, 21.52it/s] 72%|███████▏  | 418/580 [00:17<00:07, 20.76it/s] 73%|███████▎  | 421/580 [00:17<00:06, 22.86it/s] 73%|███████▎  | 424/580 [00:17<00:06, 24.34it/s] 74%|███████▎  | 427/580 [00:17<00:05, 25.78it/s] 74%|███████▍  | 430/580 [00:17<00:05, 26.89it/s] 75%|███████▍  | 433/580 [00:17<00:06, 24.11it/s] 75%|███████▌  | 436/580 [00:17<00:05, 25.60it/s] 76%|███████▌  | 439/580 [00:17<00:05, 26.75it/s] 76%|███████▌  | 442/580 [00:18<00:04, 27.63it/s] 77%|███████▋  | 445/580 [00:18<00:04, 28.27it/s] 77%|███████▋  | 448/580 [00:18<00:04, 28.74it/s] 78%|███████▊  | 451/580 [00:18<00:05, 25.56it/s] 78%|███████▊  | 454/580 [00:18<00:04, 26.72it/s] 79%|███████▉  | 457/580 [00:18<00:04, 24.70it/s] 79%|███████▉  | 460/580 [00:18<00:04, 26.05it/s] 80%|███████▉  | 463/580 [00:18<00:04, 26.25it/s] 80%|████████  | 466/580 [00:19<00:04, 25.01it/s] 81%|████████  | 469/580 [00:19<00:04, 26.30it/s] 81%|████████▏ | 472/580 [00:19<00:04, 26.53it/s] 82%|████████▏ | 475/580 [00:19<00:03, 27.46it/s] 82%|████████▏ | 478/580 [00:19<00:03, 28.14it/s] 83%|████████▎ | 481/580 [00:19<00:04, 23.88it/s] 83%|████████▎ | 484/580 [00:19<00:03, 25.42it/s] 84%|████████▍ | 487/580 [00:19<00:03, 26.61it/s] 84%|████████▍ | 490/580 [00:19<00:03, 27.52it/s] 85%|████████▌ | 493/580 [00:19<00:03, 28.19it/s] 86%|████████▌ | 496/580 [00:20<00:02, 28.68it/s] 86%|████████▌ | 499/580 [00:20<00:03, 22.52it/s] 87%|████████▋ | 502/580 [00:20<00:03, 22.46it/s] 87%|████████▋ | 505/580 [00:20<00:03, 22.24it/s] 88%|████████▊ | 508/580 [00:20<00:03, 22.98it/s] 88%|████████▊ | 511/580 [00:20<00:02, 23.34it/s] 89%|████████▊ | 514/580 [00:20<00:03, 21.61it/s] 89%|████████▉ | 517/580 [00:21<00:02, 22.85it/s] 90%|████████▉ | 520/580 [00:21<00:02, 22.62it/s] 90%|█████████ | 523/580 [00:21<00:02, 24.40it/s] 91%|█████████ | 526/580 [00:21<00:02, 25.82it/s] 91%|█████████ | 529/580 [00:21<00:02, 23.22it/s] 92%|█████████▏| 532/580 [00:21<00:01, 24.89it/s] 92%|█████████▏| 535/580 [00:21<00:01, 26.20it/s] 93%|█████████▎| 538/580 [00:21<00:01, 27.21it/s] 93%|█████████▎| 541/580 [00:21<00:01, 27.19it/s] 94%|█████████▍| 544/580 [00:22<00:01, 27.94it/s] 94%|█████████▍| 547/580 [00:22<00:01, 23.96it/s] 95%|█████████▍| 550/580 [00:22<00:01, 25.48it/s] 95%|█████████▌| 553/580 [00:22<00:01, 26.66it/s] 96%|█████████▌| 556/580 [00:22<00:00, 27.55it/s] 96%|█████████▋| 559/580 [00:22<00:00, 28.21it/s] 97%|█████████▋| 562/580 [00:22<00:00, 25.48it/s] 97%|█████████▋| 565/580 [00:22<00:00, 26.66it/s] 98%|█████████▊| 568/580 [00:23<00:00, 27.56it/s] 98%|█████████▊| 571/580 [00:23<00:00, 21.81it/s] 99%|█████████▉| 574/580 [00:23<00:00, 23.74it/s] 99%|█████████▉| 577/580 [00:23<00:00, 22.72it/s]100%|██████████| 580/580 [00:23<00:00, 22.84it/s]100%|██████████| 580/580 [00:23<00:00, 24.60it/s]
-INFO 2026-01-20 13:17:08 _dataset.py:204 End of eval
-RerunLogger: First data packet received. Auto-configuring...
-  - Using 'index' for time sequence.
-  - Detected State Key: 'observation.state'
-  - Detected Action Key: 'action'
-  - Detected Image Keys: ('observation.images.cam_head',)

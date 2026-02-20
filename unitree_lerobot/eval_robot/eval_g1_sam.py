@@ -1,16 +1,54 @@
-"""'
-Refer to:   lerobot/lerobot/scripts/eval.py
-            lerobot/lerobot/scripts/econtrol_robot.py
-            lerobot/robot_devices/control_utils.py
+"""
+Real Robot Evaluation with SAM2 Object Tracking Overlay
+Based on: unitree_lerobot/eval_robot/eval_g1.py
+Enhanced with: SAM2 gaze tracking (30% red overlay on tracked object)
+
+⚠️ IMPORTANT: Must run from project root /home/g1/unitree_groot1.5 directory!
+   (Because robot_arm_ik.py uses relative paths for URDF files)
+
+Requirements:
+    1. Start gaze server first (in glasses env):
+       conda activate glasses
+       cd /home/g1/unitree_groot1.5
+       python unitree_lerobot/eval_robot/run_gaze_server.py --port 5556
+
+    2. Then run this script (in groot1.5 env):
+       conda activate groot1.5
+       cd /home/g1/unitree_groot1.5
+       python unitree_lerobot/eval_robot/eval_g1_sam.py \
+         --policy.path=unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_30000/pretrained_model \
+         --repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
+         --use_sam=True \
+         --gaze_port=5556 \
+         --frequency=30 \
+         --motion=True \
+         --arm="G1_29" \
+         --visualization=True \
+         --ee="inspire_ftp" \
+         --send_real_robot=True
+
+        python unitree_lerobot/eval_robot/eval_g1_sam.py \
+         --policy.path=unitree_lerobot/lerobot/outputs/train/act_mask/checkpoints/last/pretrained_model \
+         --repo_id=ZUO66/handover_mask_drinks \
+         --use_sam=True \
+         --gaze_port=5556 \
+         --frequency=30 \
+         --motion=True \
+         --arm="G1_29" \
+         --ee="inspire1" \
+         --visualization=True \
+         --send_real_robot=True
 """
 
 import time
 import torch
 import logging
+import zmq
+import cv2
 
 import numpy as np
 from pprint import pformat
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from torch import nn
 from contextlib import nullcontext
 from typing import Any
@@ -48,8 +86,94 @@ logging_mp.basic_config(level=logging_mp.INFO)
 logger_mp = logging_mp.get_logger(__name__)
 
 
-def eval_policy(
-    cfg: EvalRealConfig,
+@dataclass
+class EvalRealSAMConfig(EvalRealConfig):
+    """Extended config with SAM2 tracking options"""
+    use_sam: bool = field(default=False, metadata={"help": "Enable SAM2 object tracking overlay"})
+    gaze_port: int = field(default=5556, metadata={"help": "ZMQ port for gaze server"})
+    sam_init_on_start: bool = field(default=True, metadata={"help": "Initialize SAM2 tracker before robot starts"})
+
+
+class GazeClient:
+    """Client for communicating with SAM2 gaze server"""
+    def __init__(self, port=5556, timeout=5000):
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REQ)
+        self.timeout = timeout
+        self.socket.setsockopt(zmq.RCVTIMEO, timeout)
+        self.socket.connect(f"tcp://localhost:{port}")
+        self.initialized = False
+        logger_mp.info(f"Connected to Gaze Server on port {port}")
+
+    def ping(self):
+        """Check if server is alive"""
+        try:
+            self.socket.send_pyobj({"cmd": "ping"})
+            response = self.socket.recv_pyobj()
+            return response.get("status") == "pong"
+        except zmq.error.Again:
+            logger_mp.warning("Gaze server ping timeout")
+            return False
+
+    def initialize_tracker(self, image_rgb):
+        """Send first frame to server for user to select tracking object
+        
+        Note: Uses longer timeout (120s) because user needs time to:
+        1. Look at the GUI window
+        2. Click on the object to track
+        3. Press space to preview
+        4. Close the window to confirm
+        """
+        logger_mp.info("Sending image to gaze server for object selection...")
+        logger_mp.info(">>> Please click on the object in the GUI window, then close it to confirm <<<")
+        
+        # Temporarily set longer timeout for user interaction (120 seconds)
+        self.socket.setsockopt(zmq.RCVTIMEO, 120000)
+        
+        try:
+            self.socket.send_pyobj({"cmd": "init", "image": image_rgb})
+            response = self.socket.recv_pyobj()
+            self.initialized = response.get("success", False)
+            if self.initialized:
+                logger_mp.info("✓ SAM2 tracker initialized successfully")
+            else:
+                logger_mp.warning("✗ SAM2 tracker initialization failed")
+            return self.initialized
+        except zmq.error.Again:
+            logger_mp.error("Timeout waiting for user to select object (120s)")
+            self.initialized = False
+            return False
+        finally:
+            # Restore original timeout
+            self.socket.setsockopt(zmq.RCVTIMEO, self.timeout)
+
+    def track(self, image_rgb):
+        """Send frame and get back mask + overlayed image"""
+        if not self.initialized:
+            return None, image_rgb
+        
+        self.socket.send_pyobj({"cmd": "track", "image": image_rgb})
+        response = self.socket.recv_pyobj()
+        
+        if response.get("status") != "ok":
+            return None, image_rgb
+        
+        return response.get("mask"), response.get("overlayed_image", image_rgb)
+
+    def reset(self):
+        """Reset tracker state"""
+        self.socket.send_pyobj({"cmd": "reset"})
+        response = self.socket.recv_pyobj()
+        self.initialized = False
+        return response.get("status") == "ok"
+
+    def close(self):
+        self.socket.close()
+        self.context.term()
+
+
+def eval_policy_with_sam(
+    cfg: EvalRealSAMConfig,
     dataset: LeRobotDataset,
     policy: PreTrainedPolicy | None = None,
     preprocessor: PolicyProcessorPipeline[dict[str, Any], dict[str, Any]] | None = None,
@@ -61,6 +185,18 @@ def eval_policy(
 
     if cfg.visualization:
         rerun_logger = RerunLogger()
+
+    # Initialize SAM2 client if enabled
+    gaze_client = None
+    if cfg.use_sam:
+        try:
+            gaze_client = GazeClient(port=cfg.gaze_port)
+            if not gaze_client.ping():
+                logger_mp.error("Gaze server not responding! Start it with: python unitree_lerobot/eval_robot/run_gaze_server.py")
+                gaze_client = None
+        except Exception as e:
+            logger_mp.error(f"Failed to connect to gaze server: {e}")
+            gaze_client = None
 
     # Reset policy and processor if they are provided
     if policy is not None and preprocessor is not None and postprocessor is not None:
@@ -102,6 +238,18 @@ def eval_policy(
         )
         init_arm_pose = step["observation.state"][:arm_dof].cpu().numpy()
 
+        # SAM2 Initialization before robot starts
+        if gaze_client and cfg.sam_init_on_start:
+            logger_mp.info("Waiting for first frame to initialize SAM2 tracker...")
+            time.sleep(0.5)  # Wait for image server to be ready
+            
+            # Get a frame from the shared memory (BGR format from image server)
+            # tv_img_array is already a numpy array view of shared memory
+            init_frame_bgr = tv_img_array.copy()
+            init_frame_rgb = cv2.cvtColor(init_frame_bgr, cv2.COLOR_BGR2RGB)
+            
+            gaze_client.initialize_tracker(init_frame_rgb)
+
         user_input = input("Enter 's' to initialize the robot and start the evaluation: ")
         idx = 0
         print(f"user_input: {user_input}")
@@ -119,10 +267,36 @@ def eval_policy(
             logger_mp.info(f"Starting evaluation loop at {cfg.frequency} Hz.")
             while True:
                 loop_start_time = time.perf_counter()
-                # 1. Get Observations
+                
+                # 1. Get Observations (with optional SAM2 overlay)
                 observation, current_arm_q = process_images_and_observations(
                     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
                 )
+                
+                # Apply SAM2 tracking overlay to third-view camera (cam_head)
+                overlayed_img = None
+                if gaze_client and gaze_client.initialized:
+                    # Get the RGB image from observation (cam_head is the third-view camera)
+                    tv_key = "observation.images.cam_head"
+                    if tv_key in observation:
+                        # observation images are (H, W, C) uint8 from make_robot.py
+                        tv_img_tensor = observation[tv_key]
+                        tv_img_np = tv_img_tensor.cpu().numpy().astype(np.uint8)
+                        
+                        # Track and get overlayed image (RGB)
+                        mask, overlayed_img = gaze_client.track(tv_img_np)
+                        
+                        # Replace observation image with SAM2 overlayed version
+                        if overlayed_img is not None:
+                            observation[tv_key] = torch.from_numpy(overlayed_img)
+                
+                # Visualization: Show SAM2 overlay in a window
+                if cfg.visualization and overlayed_img is not None:
+                    # Convert RGB to BGR for OpenCV display
+                    display_img = cv2.cvtColor(overlayed_img, cv2.COLOR_RGB2BGR)
+                    cv2.imshow("SAM2 Tracking (30% Red Overlay)", display_img)
+                    cv2.waitKey(1)  # Non-blocking, just refresh
+
                 left_ee_state = right_ee_state = np.array([])
                 if cfg.ee:
                     with ee_shared_mem["lock"]:
@@ -133,6 +307,7 @@ def eval_policy(
                     np.concatenate((current_arm_q, left_ee_state, right_ee_state), axis=0)
                 ).float()
                 observation["observation.state"] = state_tensor
+                
                 # 2. Get Action from Policy
                 inference_start = time.perf_counter()
                 action = predict_action(
@@ -148,6 +323,7 @@ def eval_policy(
                 )
                 inference_time = (time.perf_counter() - inference_start) * 1000
                 action_np = action.cpu().numpy()
+                
                 # 3. Execute Action
                 arm_action = action_np[:arm_dof]
                 tau = arm_ik.solve_tau(arm_action)
@@ -157,7 +333,6 @@ def eval_policy(
                     ee_action_start_idx = arm_dof
                     left_ee_action = action_np[ee_action_start_idx : ee_action_start_idx + ee_dof]
                     right_ee_action = action_np[ee_action_start_idx + ee_dof : ee_action_start_idx + 2 * ee_dof]
-                    # logger_mp.info(f"EE Action: left {left_ee_action}, right {right_ee_action}")
 
                     if isinstance(ee_shared_mem["left"], SynchronizedArray):
                         ee_shared_mem["left"][:] = to_list(left_ee_action)
@@ -178,15 +353,21 @@ def eval_policy(
                 if idx % 30 == 0:
                     avg_latency, avg_fps = np.mean(latencies[-30:]), np.mean(fps_list[-30:])
                     logger_mp.info(f"[Perf] Step: {idx} | Inference: {avg_latency:.1f}ms | FPS: {avg_fps:.1f} (Max: {1000/avg_latency:.1f})")
+    except KeyboardInterrupt:
+        logger_mp.info("Interrupted by user")
     except Exception as e:
-        logger_mp.info(f"An error occurred: {e}")
+        logger_mp.error(f"An error occurred: {e}", exc_info=True)
     finally:
+        # Close visualization window
+        cv2.destroyAllWindows()
+        if gaze_client:
+            gaze_client.close()
         if image_info:
             cleanup_resources(image_info)
 
 
 @parser.wrap()
-def eval_main(cfg: EvalRealConfig):
+def eval_main(cfg: EvalRealSAMConfig):
     logging.info(pformat(asdict(cfg)))
 
     # Check device is available
@@ -213,7 +394,7 @@ def eval_main(cfg: EvalRealConfig):
     )
 
     with torch.no_grad(), torch.autocast(device_type=device.type) if cfg.policy.use_amp else nullcontext():
-        eval_policy(cfg, dataset, policy, preprocessor, postprocessor)
+        eval_policy_with_sam(cfg, dataset, policy, preprocessor, postprocessor)
 
     logging.info("End of eval")
 

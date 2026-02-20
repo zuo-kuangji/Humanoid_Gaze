@@ -8,13 +8,13 @@ python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
   --repo-id ZUO66/handover_drinks \
   --robot_type Unitree_G1_Inspire_Head \
   --push_to_hub
-
-unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
+一般先不直接push to hub
+python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
   --raw-dir /home/g1/zuo/hri_datasets/handover_drinks \
   --repo-id ZUO66/handover_drinks \
   --robot-type Unitree_G1_Inspire_Head \
   --no-push-to-hub
-
+处理完数据后，再上传
 huggingface-cli upload ZUO66/handover_drinks \
   /home/g1/.cache/huggingface/lerobot/ZUO66/handover_drinks \
   . \
@@ -26,7 +26,6 @@ python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
     --repo-id ZUO66/handover_two_drinks \
     --robot_type Unitree_G1_Inspire_Head \
     --push_to_hub
-
 
 python src/lerobot/scripts/lerobot_train.py \
   --dataset.repo_id=ZUO66/handover_drinks \
@@ -70,18 +69,54 @@ python src/lerobot/scripts/lerobot_train.py \
   --wandb.enable=true \
   --wandb.project=zuo_handover \
   --wandb.disable_artifact=true
+
+nohup python src/lerobot/scripts/lerobot_train.py \
+  --config_path=/root/Humanoid_lerobot/unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_overlay_2gpu_run/checkpoints/last/pretrained_model/train_config.json \
+  --resume=true \
+  --dataset.repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
+  --policy.type=groot \
+  --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=true \
+  --output_dir=outputs/train/groot_pick_paper_ball_overlay_2gpu_run \
+  --steps=30000 \
+  --batch_size=80 \
+  --num_workers=8 \
+  --save_freq=5000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.disable_artifact=true \
+  --wandb.project=zuo_pick_paper_ball \
+  --job_name=groot_finetune_overlay_2gpu_bs80_nw8 \
+  2>&1 | tee logs/train_resume_1gpu_bs80_nw8.log &
+
+tail -f logs/train_resume_1gpu_bs80_nw8.log
+tail -f nohup.out
+# 查看进程是否在运行
+ps aux | grep lerobot_train
+
+# 实时查看日志
+tail -f act_finetune.log
+
+# 停止训练
+kill -9 <PID>
 --------------------------------------------
 
+rm -rf outputs/train/groot_mask_handover 先确保没有这个文件夹，然后运行训练程序
 python src/lerobot/scripts/lerobot_train.py \
-  --dataset.repo_id=ZUO66/handover_drinks \
+  --dataset.repo_id=ZUO66/handover_mask_drinks \
   --policy.type=groot \
   --policy.repo_id=ZUO66/groot_handover \
   --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_projector=true \
   --policy.tune_diffusion_model=false \
-  --output_dir=outputs/train/groot_handover \
+  --output_dir=outputs/train/groot_mask_handover \
   --steps=20000 \
-  --batch_size=32 \
-  --num_workers=8 \
+  --batch_size=110 \
+  --num_workers=16 \
   --save_freq=5000 \
   --save_checkpoint=true \
   --wandb.enable=true \
@@ -89,24 +124,48 @@ python src/lerobot/scripts/lerobot_train.py \
   --wandb.disable_artifact=true \
   --job_name=groot_training
 
-# 再次尝试运行 (确保已安装 dm-tree)
+# ============ 基于已有 checkpoint 继续训练（新数据集）============
+rm -rf outputs/train/groot_mask_handover  # 确保没有旧的输出文件夹
 python src/lerobot/scripts/lerobot_train.py \
-  --dataset.repo_id=ZUO66/handover_drinks \
+  --policy.pretrained_path=outputs/train/groot_handover/checkpoints/020000_1/pretrained_model \
+  --dataset.repo_id=ZUO66/handover_mask_drinks \
   --policy.type=groot \
-  --policy.repo_id=ZUO66/groot_handover \
   --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
   --policy.tune_diffusion_model=false \
-  --output_dir=outputs/train/groot_handover \
-  --steps=200000 \
-  --batch_size=256 \
-  --num_workers=4 \
-  --save_freq=20000 \
+  --policy.use_amp=true \
+  --output_dir=outputs/train/groot_mask_handover \
+  --steps=50000 \
+  --batch_size=32 \
+  --num_workers=16 \
+  --save_freq=5000 \
+  --save_checkpoint=true \
   --wandb.enable=true \
   --wandb.project=zuo_handover \
-  --job_name=groot_training
+  --wandb.disable_artifact=true \
+  --job_name=groot_finetune_from_20k \
+  2>&1 | tee train.log &
+ 
+tail -f train.log  # 实时查看日志
 
-
-
+python src/lerobot/scripts/lerobot_train.py \
+  --policy.pretrained_path=outputs/train/act/checkpoints/last/pretrained_model \
+  --dataset.repo_id=ZUO66/handover_mask_drinks \
+  --policy.type=act \
+  --policy.push_to_hub=false \
+  --policy.use_amp=true \
+  --output_dir=outputs/train/act_mask \
+  --steps=80000 \
+  --batch_size=160 \
+  --num_workers=16 \
+  --save_freq=10000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.project=zuo_handover \
+  --job_name=act_finetune_mask \
+  2>&1 | tee train_act_mask.log &
 
 ===============================Real inference===================================
 
@@ -125,11 +184,11 @@ python unitree_lerobot/eval_robot/eval_g1.py \
 
 
 python unitree_lerobot/eval_robot/eval_g1.py \
-  --policy.path=unitree_lerobot/lerobot/outputs/train/20-17-15_act/checkpoints/last \
+  --policy.path=unitree_lerobot/lerobot/outputs/train/act/checkpoints/last/pretrained_model \
   --repo_id=ZUO66/handover_drinks \
   --root="" \
   --episodes=80 \
-  --frequency=30 \
+  --frequency=60 \
   --motion=True \
   --arm="G1_29" \
   --ee="inspire1" \
@@ -137,37 +196,50 @@ python unitree_lerobot/eval_robot/eval_g1.py \
   --send_real_robot=true \
   2>&1 | tee eval_real.log
 
-
-=================加上Gaze的部署=================
-python unitree_lerobot/eval_robot/eval_g1_withgaze.py \
-  --policy.pretrained_path=unitree_lerobot/lerobot/outputs/train/groot_handover_mask/checkpoints/last/pretrained_model \
-  --repo_id=ZUO66/handover_two_drinks \
+========多gpu训练================
+CUDA_VISIBLE_DEVICES=0,1 accelerate launch \
+  --multi_gpu \
+  --num_processes=2 \
+  --mixed_precision=fp16 \
+  src/lerobot/scripts/lerobot_train.py \
+  --dataset.repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
   --policy.type=groot \
-  --root="" \
-  --episodes=10 \
-  --frequency=30 \
-  --motion=True \
-  --arm="G1_29" \
-  --ee="inspire1" \
-  --visualization=true \
-  --send_real_robot=true \
+  --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=false \
   --policy.use_amp=true \
-  --text "Pick up the coke can and hand it over." \
-  2>&1 | tee eval_gaze.log
-================= 加上Gaze的部署结束=================
+  --output_dir=outputs/train/groot_pick_paper_ball_overlay \
+  --steps=30000 \
+  --batch_size=40 \
+  --num_workers=8 \
+  --save_freq=10000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.project=zuo_pick_paper_ball \
+  --job_name=groot_finetune_overlay_2gpu \
+  2>&1 | tee train_overlay_2gpu.log &
 
-
-python unitree_lerobot/eval_robot/eval_g1_dataset.py   --policy.path=unitree_lerobot/lerobot/outputs/train/2025-12-25/14-34-29_diffusion/checkpoints/160000/pretrained_model   --repo_id=ZUO66/handover_drinks   --root=""   --episodes=0   --frequency=30  --motion True  --arm="G1_29"   --ee="inspire1"   --visualization=true   --send_real_robot=false 2>&1 | tee eval_real.log
-
-real robot prepare:
-cd dfx_inspire_service/build/
-sudo ./inspire_g1
-sudo ./hand_example
-python image_server/image_server_realsense.py 
-
-
-
-
+python  src/lerobot/scripts/lerobot_train.py \
+  --dataset.repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
+  --policy.type=groot \
+  --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=false \
+  --policy.use_amp=true \
+  --output_dir=outputs/train/groot_pick_paper_ball_overlay \
+  --steps=30000 \
+  --batch_size=40 \
+  --num_workers=8 \
+  --save_freq=10000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.project=zuo_pick_paper_ball \
+  --job_name=groot_finetune_overlay_2gpu \
+  2>&1 | tee train_overlay_2gpu.log &
 
 
 
@@ -202,30 +274,109 @@ TOKENIZERS_PARALLELISM=false python src/lerobot/scripts/lerobot_train.py \
   --policy.use_amp=true \
   --resume=false > train_final.log 2>&1 &
 
+mkdir -p logs
 
-===================== A100 双卡并行加速训练命令 =====================
-# 该命令会自动调用两张 GPU 并行训练，速度翻倍
-cd /mars_data/zuo/Robot_Gaze/unitree_lerobot
+nohup bash -lc '
+set -o pipefail
+export PYTHONFAULTHANDLER=1
+export TORCH_SHOW_CPP_STACKTRACES=1
+export NCCL_DEBUG=INFO
+export NCCL_ASYNC_ERROR_HANDLING=1
 
-# 设置环境
-export TMPDIR=/mars_data/zuo/tmp
-export LD_LIBRARY_PATH=/mars_data/zuo/envs/unitree_groot/lib:$LD_LIBRARY_PATH
-export TOKENIZERS_PARALLELISM=false
-
-# 启动双卡训练 (batch_size=32 meaning global_batch=64)
-nohup accelerate launch \
-  --num_processes=2 \
-  --main_process_port=29500 \
-  /mars_data/zuo/envs/unitree_groot/bin/lerobot-train \
-  --policy.pretrained_path=/mars_data/zuo/Robot_Gaze/unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000/pretrained_model \
-  --dataset.repo_id=ZUO66/handover_two_drinks \
-  --dataset.root=/mars_data/zuo/my_data/handover_two_drinks \
+python src/lerobot/scripts/lerobot_train.py \
+  --config_path=/root/Humanoid_lerobot/unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_overlay_2gpu_run/checkpoints/last/pretrained_model/train_config.json \
+  --resume=true \
+  --dataset.repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
   --policy.type=groot \
-  --policy.repo_id=ZUO66/groot_mask \
   --policy.push_to_hub=false \
-  --output_dir=outputs/train/groot_mask \
-  --steps=50000 --batch_size=32 --num_workers=8 --save_freq=5000 --save_checkpoint=true \
-  --wandb.enable=true --wandb.project=zuo_handover --job_name=groot_full_align_2gpu \
-  --policy.tune_projector=true --policy.tune_diffusion_model=false \
-  --policy.device=cuda --policy.use_amp=true --resume=false --dataset.video_backend=pyav \
-  > train_final_2gpu.log 2>&1 &
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=true \
+  --output_dir=outputs/train/groot_pick_paper_ball_overlay_2gpu_run \
+  --steps=40000 \
+  --batch_size=80 \
+  --num_workers=8 \
+  --save_freq=5000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.disable_artifact=true \
+  --wandb.project=zuo_pick_paper_ball \
+  --job_name=groot_finetune_overlay_2gpu_bs80_nw8 \
+  2>&1 | tee logs/train_resume_1gpu_bs80_nw8.log
+
+ec=${PIPESTATUS[0]}
+echo "[EXIT] code=$ec time=$(date -Is)" | tee -a logs/train_exit_meta.log
+
+df -h > logs/df_after.log
+free -h > logs/mem_after.log
+nvidia-smi > logs/nvidia_after.log 2>&1 || true
+dmesg -T | tail -n 500 > logs/dmesg_tail.log 2>&1 || true
+dmesg -T | egrep -i "out of memory|oom-killer|killed process|xid|nvrm|segfault|bus error" > logs/dmesg_keywords.log 2>&1 || true
+
+exit $ec
+' > logs/train_wrapper.log 2>&1 &
+
+
+传数据
+huggingface-cli upload ZUO66/groot_paper_ball10000 \
+  /root/Humanoid_lerobot/unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_overlay_2gpu_run/checkpoints/last/pretrained_model \
+  . \
+  --repo-type model
+
+HF_XET_HIGH_PERFORMANCE=1 HF_XET_NUM_CONCURRENT_RANGE_GETS=64 \
+hf download ZUO66/groot_pick_paper_ball_30000 \
+  --repo-type model \
+  --revision main \
+  --local-dir /home/g1/unitree_groot1.5/unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_30000 \
+  --max-workers 32
+
+
+cd /root/Humanoid_lerobot/unitree_lerobot/lerobot
+unset OMP_NUM_THREADS
+nohup python src/lerobot/scripts/lerobot_train.py \
+  --dataset.repo_id=ZUO66/pick_vegetable_overlay \
+  --dataset.revision=main \
+  --policy.type=groot \
+  --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=true \
+  --policy.use_amp=true \
+  --output_dir=/root/autodl-tmp/outputs/train/groot_pick_vegetable_overlay \
+  --steps=35000 \
+  --batch_size=80 \
+  --num_workers=8 \
+  --save_freq=5000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.project=zuo_groot_pick_vegetable_overlay\
+  --wandb.disable_artifact=true \
+  --job_name=groot_pick_vegetable_overlay   \
+> /root/autodl-tmp/groot_pick_vegetable_overlay.log 2>&1 &
+
+cd /root/Humanoid_lerobot/unitree_lerobot/lerobot
+unset OMP_NUM_THREADS
+nohup python src/lerobot/scripts/lerobot_train.py \
+  --policy.pretrained_path=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000_1/pretrained_model \
+  --dataset.repo_id=ZUO66/handover_clear_cup_overlay \
+  --dataset.revision=main \
+  --policy.type=groot \
+  --policy.push_to_hub=false \
+  --policy.tune_visual=true \
+  --policy.tune_llm=false \
+  --policy.tune_projector=true \
+  --policy.tune_diffusion_model=false \
+  --policy.use_amp=true \
+  --output_dir=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/handover_clear_cup_outlined \
+  --steps=40000 \
+  --batch_size=30 \
+  --num_workers=8 \
+  --save_freq=5000 \
+  --save_checkpoint=true \
+  --wandb.enable=true \
+  --wandb.project=handover_clear_cup_overlay\
+  --wandb.disable_artifact=true \
+  --job_name=handover_clear_cup_overlay   \
+> /home/g1/unitree_groot1.5/unitree_lerobot/lerobot/outputs/train/handover_clear_cup_overlay.log 2>&1 &
