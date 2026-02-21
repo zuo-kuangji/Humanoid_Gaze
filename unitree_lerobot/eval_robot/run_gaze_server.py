@@ -104,7 +104,7 @@ class GazeServer:
                     response["overlayed_image"] = image_rgb
                 else:
                     masks_by_obj = self.step(image_rgb)
-                    overlayed_image = self.apply_mask_overlay(image_rgb, masks_by_obj, alpha=0.35)
+                    overlayed_image = self.apply_mask_overlay(image_rgb, masks_by_obj)
                     combined_mask = self._combine_masks(masks_by_obj, image_rgb.shape[:2])
                     response = {
                         "status": "ok",
@@ -288,66 +288,83 @@ class GazeServer:
         print(f" Tracker Initialized successfully. objects={len(self.obj_ids)}")
         return True
 
-    def apply_mask_overlay(self, frame_rgb, mask_data, alpha=0.35):
+    def apply_mask_overlay(self, frame_rgb, mask_data, darken_ratio=0.75, k1_size=5, k2_size=7):
         """
-        Apply colored overlay to masked regions.
-        Supports:
-            - single mask ndarray (backward compatibility -> red)
-            - dict[obj_id] = mask ndarray (multi-object)
+        Apply identical mathematical morphology visual prompting as the training pipeline.
+        Darkens object interior, adds white inner border and black outer border.
         
         Args:
-            frame_rgb: Original RGB image (H, W, 3) uint8
-            mask_data: mask or dict of masks
-            alpha: Overlay intensity (0.3 means 30% color)
+            frame_rgb: Original RGB image (H, W, 3) uint8 as NumPy array
+            mask_data: None, single mask ndarray, or dict[obj_id] = mask ndarray
+            darken_ratio: The ratio to darken the S_inner pixels
+            k1_size: Inner white margin kernel size
+            k2_size: Outer black margin kernel size
         Returns:
             Overlayed RGB image (H, W, 3) uint8
         """
         if mask_data is None:
             return frame_rgb
-        
-        output = frame_rgb.copy()
-        h, w = frame_rgb.shape[:2]
 
+        h, w = frame_rgb.shape[:2]
+        
+        # Combine masks if multiple objects exist in a dict
+        combined_mask_np = None
         if isinstance(mask_data, dict):
             if len(mask_data) == 0:
                 return frame_rgb
+            combined_mask_np = np.zeros((h, w), dtype=bool)
             for obj_id in sorted(mask_data.keys()):
                 mask = mask_data[obj_id]
                 if mask is None:
                     continue
                 if mask.shape != (h, w):
-                    mask_resized = cv2.resize(
-                        mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
-                    ).astype(bool)
+                    mask = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
                 else:
-                    mask_resized = mask.astype(bool)
-                if not mask_resized.any():
-                    continue
-                color = np.zeros_like(output)
-                rgb = self._get_obj_color(obj_id)
-                color[:, :, 0] = rgb[0]
-                color[:, :, 1] = rgb[1]
-                color[:, :, 2] = rgb[2]
-                output[mask_resized] = (
-                    output[mask_resized] * (1 - alpha) + color[mask_resized] * alpha
-                ).astype(np.uint8)
-            return output
+                    mask = mask.astype(bool)
+                combined_mask_np |= mask
         else:
             mask = np.asarray(mask_data)
             if mask.shape != (h, w):
-                mask_resized = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
+                mask = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
             else:
-                mask_resized = mask.astype(bool)
-            if not mask_resized.any():
-                return frame_rgb
-            red_mask = np.zeros_like(output)
-            red_mask[:, :, 0] = 255
-            red_mask[:, :, 1] = 0
-            red_mask[:, :, 2] = 0
-            output[mask_resized] = (
-                output[mask_resized] * (1 - alpha) + red_mask[mask_resized] * alpha
-            ).astype(np.uint8)
-            return output
+                mask = mask.astype(bool)
+            combined_mask_np = mask
+
+        if combined_mask_np is None or not combined_mask_np.any():
+            return frame_rgb
+
+        # --- Fast GPU Morphology Equivalent of pipeline_mask2overlay ---
+        # 1. H2D (Numpy to Tensor)
+        # float32 for processing: (1, 3, H, W)
+        image_t = torch.from_numpy(frame_rgb).permute(2, 0, 1).unsqueeze(0).to(self.device, dtype=torch.float32)
+        # mask is boolean, so float32 converts True/False to 1.0/0.0
+        mask_t = torch.from_numpy(combined_mask_np).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+
+        # 2. Dilation Operations
+        import torch.nn.functional as F
+        mask_k1 = F.max_pool2d(mask_t, kernel_size=k1_size, stride=1, padding=k1_size//2)
+        mask_k2 = F.max_pool2d(mask_t, kernel_size=k2_size, stride=1, padding=k2_size//2)
+
+        # 3. Boolean Masks for rendering
+        S_inner = mask_t > 0.5
+        S_white = (mask_k1 > 0.5) & (~S_inner)
+        S_black = (mask_k2 > 0.5) & (~(mask_k1 > 0.5))
+
+        # 4. Pixel-wise Override
+        I_prompt = image_t.clone()
+        # Interior texture is darkened (DISABLED by USER requesting transparency check with black fingers)
+        # I_prompt = torch.where(S_inner.expand_as(I_prompt), I_prompt * darken_ratio, I_prompt)
+        
+        # White border
+        I_prompt = torch.where(S_white.expand_as(I_prompt), torch.tensor(255.0, device=self.device), I_prompt)
+        # Black border
+        I_prompt = torch.where(S_black.expand_as(I_prompt), torch.tensor(0.0, device=self.device), I_prompt)
+
+        # 5. D2H (Tensor to Numpy)
+        I_prompt_uint8 = torch.clamp(I_prompt, 0, 255).to(torch.uint8)
+        output_np = I_prompt_uint8.squeeze(0).permute(1, 2, 0).cpu().numpy()
+
+        return output_np
 
     def _combine_masks(self, masks_by_obj, target_hw):
         if masks_by_obj is None:

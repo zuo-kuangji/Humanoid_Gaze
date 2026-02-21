@@ -103,7 +103,7 @@ class EvalRealSAMAttentionConfig(EvalRealConfig):
 
 class GazeClient:
     """Client for communicating with SAM2 gaze server"""
-    def __init__(self, port=5556, timeout=5000):
+    def __init__(self, port=5556, timeout=15000):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
         self.timeout = timeout
@@ -152,13 +152,18 @@ class GazeClient:
         if not self.initialized:
             return None, image_rgb
         
-        self.socket.send_pyobj({"cmd": "track", "image": image_rgb})
-        response = self.socket.recv_pyobj()
-        
-        if response.get("status") != "ok":
+        try:
+            self.socket.send_pyobj({"cmd": "track", "image": image_rgb})
+            response = self.socket.recv_pyobj()
+            
+            if response.get("status") != "ok":
+                return None, image_rgb
+            
+            return response.get("mask"), response.get("overlayed_image", image_rgb)
+        except zmq.error.Again:
+            logger_mp.warning("[GazeClient] Tracker timeout, using previous state.")
+            # Return None mask and original image to avoid crash
             return None, image_rgb
-        
-        return response.get("mask"), response.get("overlayed_image", image_rgb)
 
     def reset(self):
         """Reset tracker state"""

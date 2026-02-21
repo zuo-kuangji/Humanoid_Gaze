@@ -96,7 +96,7 @@ class EvalRealSAMConfig(EvalRealConfig):
 
 class GazeClient:
     """Client for communicating with SAM2 gaze server"""
-    def __init__(self, port=5556, timeout=5000):
+    def __init__(self, port=5556, timeout=15000):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
         self.timeout = timeout
@@ -152,13 +152,17 @@ class GazeClient:
         if not self.initialized:
             return None, image_rgb
         
-        self.socket.send_pyobj({"cmd": "track", "image": image_rgb})
-        response = self.socket.recv_pyobj()
-        
-        if response.get("status") != "ok":
+        try:
+            self.socket.send_pyobj({"cmd": "track", "image": image_rgb})
+            response = self.socket.recv_pyobj()
+            
+            if response.get("status") != "ok":
+                return None, image_rgb
+            
+            return response.get("mask"), response.get("overlayed_image", image_rgb)
+        except zmq.error.Again:
+            logger_mp.warning("[GazeClient] Tracker timeout, using previous state.")
             return None, image_rgb
-        
-        return response.get("mask"), response.get("overlayed_image", image_rgb)
 
     def reset(self):
         """Reset tracker state"""
@@ -241,10 +245,16 @@ def eval_policy_with_sam(
         # SAM2 Initialization before robot starts
         if gaze_client and cfg.sam_init_on_start:
             logger_mp.info("Waiting for first frame to initialize SAM2 tracker...")
-            time.sleep(0.5)  # Wait for image server to be ready
             
+            # Wait until image array is actually populated (not all zeros)
+            wait_start = time.time()
+            while not np.any(tv_img_array):
+                if time.time() - wait_start > 15.0:
+                    logger_mp.error("Timeout: Camera image is still black after 15 seconds! Please check if the camera server is running on the robot.")
+                    break
+                time.sleep(0.1)
+                
             # Get a frame from the shared memory (BGR format from image server)
-            # tv_img_array is already a numpy array view of shared memory
             init_frame_bgr = tv_img_array.copy()
             init_frame_rgb = cv2.cvtColor(init_frame_bgr, cv2.COLOR_BGR2RGB)
             
@@ -294,7 +304,7 @@ def eval_policy_with_sam(
                 if cfg.visualization and overlayed_img is not None:
                     # Convert RGB to BGR for OpenCV display
                     display_img = cv2.cvtColor(overlayed_img, cv2.COLOR_RGB2BGR)
-                    cv2.imshow("SAM2 Tracking (30% Red Overlay)", display_img)
+                    cv2.imshow("SAM2 Tracking (Outlined Prompt)", display_img)
                     cv2.waitKey(1)  # Non-blocking, just refresh
 
                 left_ee_state = right_ee_state = np.array([])

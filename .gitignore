@@ -14,3 +14,13 @@ data/
 # Training outputs
 unitree_lerobot/lerobot/outputs/
 attention-map-diffusers/
+
+# Video and large files
+*.mp4
+*.webm
+*.avi
+*.mkv
+*.mov
+*.wmv
+*.flv
+*.gif

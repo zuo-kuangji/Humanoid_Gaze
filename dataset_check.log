@@ -1,0 +1,48 @@
+Traceback (most recent call last):
+  File "<string>", line 22, in <module>
+  File "/home/g1/humanoid_gaze/unitree_lerobot/lerobot/src/lerobot/datasets/factory.py", line 84, in make_dataset
+    ImageTransforms(cfg.dataset.image_transforms) if cfg.dataset.image_transforms.enable else None
+AttributeError: 'DummyConfig' object has no attribute 'image_transforms'
+
+ERROR conda.cli.main_run:execute(127): `conda run python -c 
+import sys
+from lerobot.datasets.factory import make_dataset
+
+class DummyConfig:
+    def __init__(self):
+        self.repo_id = 'ZUO66/handover_clear_cup_overlay'
+        self.revision = 'main'
+        self.type = 'lerobot'
+        self.root = None
+        self.episodes = None
+        self.streaming = False
+        self.video_backend = 'pyav'
+        self.tolerance_s = 0.0001
+        self.use_videos = True
+
+class DummyMainConfig:
+    def __init__(self):
+        self.dataset = DummyConfig()
+
+print('Loading dataset ZUO66/handover_clear_cup_overlay...')
+dataset = make_dataset(DummyMainConfig())
+print(f'Successfully loaded. Found {dataset.num_episodes} episodes.')
+
+bad_episodes = []
+for ep_idx in range(dataset.num_episodes):
+    try:
+        start_idx = dataset.meta.episodes[ep_idx]['dataset_from_index']
+        end_idx = dataset.meta.episodes[ep_idx]['dataset_to_index'] - 1
+        
+        _ = dataset[start_idx]
+        _ = dataset[end_idx]
+    except Exception as e:
+        bad_episodes.append(ep_idx)
+
+if not bad_episodes:
+    print('✅ Dataset is clean. No bad frames.')
+else:
+    print(f'❌ Dataset Corrupt in episodes: {bad_episodes}')
+` failed. (See above for error)
+Loading dataset ZUO66/handover_clear_cup_overlay...
+

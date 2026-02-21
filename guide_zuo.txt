@@ -15,11 +15,22 @@ python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
   --robot-type Unitree_G1_Inspire_Head \
   --no-push-to-hub
 处理完数据后，再上传
-huggingface-cli upload ZUO66/handover_drinks \
-  /home/g1/.cache/huggingface/lerobot/ZUO66/handover_drinks \
+huggingface-cli upload ZUO66/handover_drinks_outline \
+  /home/g1/.cache/huggingface/lerobot/ZUO66/handover_drinks_outline \
   . \
   --repo-type dataset
 
+
+# 上传 checkpoint 内容到模型仓库根目录
+huggingface-cli upload ZUO66/groot_pick_vegetable_overlay \
+   /root/autodl-tmp/outputs/train/groot_pick_vegetable_overlay/checkpoints/015000/pretrained_model \
+  . \
+  --repo-type model
+服务器下载：
+huggingface-cli login
+huggingface-cli download ZUO66/groot_mask_handovercup \
+  --repo-type model \
+  --local-dir /home/g1/zuo/humanoid_lerobot/unitree_lerobot/lerobot/outputs/train/groot_mask_handovercup
 
 python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
     --raw-dir /home/g1/zuo/xr_teleoperate/teleop/utils/data/handover_drinks \
@@ -335,7 +346,7 @@ hf download ZUO66/groot_pick_paper_ball_30000 \
 cd /root/Humanoid_lerobot/unitree_lerobot/lerobot
 unset OMP_NUM_THREADS
 nohup python src/lerobot/scripts/lerobot_train.py \
-  --dataset.repo_id=ZUO66/pick_vegetable_overlay \
+  --dataset.repo_id=ZUO66/handover_drinks_outline \
   --dataset.revision=main \
   --policy.type=groot \
   --policy.push_to_hub=false \
@@ -344,23 +355,22 @@ nohup python src/lerobot/scripts/lerobot_train.py \
   --policy.tune_projector=true \
   --policy.tune_diffusion_model=true \
   --policy.use_amp=true \
-  --output_dir=/root/autodl-tmp/outputs/train/groot_pick_vegetable_overlay \
-  --steps=35000 \
-  --batch_size=80 \
-  --num_workers=8 \
+  --output_dir=/root/autodl-tmp/outputs/train/groot_handover_drinks_outlined \
+  --steps=30000 \
+  --batch_size=90 \
+  --num_workers=10 \
   --save_freq=5000 \
   --save_checkpoint=true \
   --wandb.enable=true \
-  --wandb.project=zuo_groot_pick_vegetable_overlay\
+  --wandb.project=zuo_groot_handover_drinks_outlined\
   --wandb.disable_artifact=true \
-  --job_name=groot_pick_vegetable_overlay   \
-> /root/autodl-tmp/groot_pick_vegetable_overlay.log 2>&1 &
+  --job_name=groot_handover_drinks_outlined   \
+> /root/autodl-tmp/groot_handover_drinks_outlined.log 2>&1 &
 
-cd /root/Humanoid_lerobot/unitree_lerobot/lerobot
-unset OMP_NUM_THREADS
+
 nohup python src/lerobot/scripts/lerobot_train.py \
   --policy.pretrained_path=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/groot_handover/checkpoints/020000_1/pretrained_model \
-  --dataset.repo_id=ZUO66/handover_clear_cup_overlay \
+  --dataset.repo_id=ZUO66/handover_drink_outlined \
   --dataset.revision=main \
   --policy.type=groot \
   --policy.push_to_hub=false \
@@ -369,14 +379,14 @@ nohup python src/lerobot/scripts/lerobot_train.py \
   --policy.tune_projector=true \
   --policy.tune_diffusion_model=false \
   --policy.use_amp=true \
-  --output_dir=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/handover_clear_cup_outlined \
+  --output_dir=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/handover_drink_outlined \
   --steps=40000 \
   --batch_size=30 \
   --num_workers=8 \
   --save_freq=5000 \
   --save_checkpoint=true \
   --wandb.enable=true \
-  --wandb.project=handover_clear_cup_overlay\
+  --wandb.project=handover_drink_outlined \
   --wandb.disable_artifact=true \
-  --job_name=handover_clear_cup_overlay   \
-> /home/g1/unitree_groot1.5/unitree_lerobot/lerobot/outputs/train/handover_clear_cup_overlay.log 2>&1 &
+  --job_name=handover_drink_outlined   \
+> /home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/handover_drink_outlined.log 2>&1 &
