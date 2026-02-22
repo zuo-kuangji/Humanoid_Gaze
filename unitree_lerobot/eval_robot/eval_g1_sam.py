@@ -9,15 +9,15 @@ Enhanced with: SAM2 gaze tracking (30% red overlay on tracked object)
 Requirements:
     1. Start gaze server first (in glasses env):
        conda activate glasses
-       cd /home/g1/unitree_groot1.5
+       cd /home/g1/humanoid_gaze
        python unitree_lerobot/eval_robot/run_gaze_server.py --port 5556
 
     2. Then run this script (in groot1.5 env):
-       conda activate groot1.5
-       cd /home/g1/unitree_groot1.5
+       conda activate humanoid_gaze
+       cd /home/g1/humanoid_gaze
        python unitree_lerobot/eval_robot/eval_g1_sam.py \
-         --policy.path=unitree_lerobot/lerobot/outputs/train/groot_pick_paper_ball_30000/pretrained_model \
-         --repo_id=ZUO66/pick_crumpled_paper_ball_gaze_overlay \
+         --policy.path=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/groot_pick_handover_drinks_outlined25000 \
+         --repo_id=ZUO66/handover_drinks_outline \
          --use_sam=True \
          --gaze_port=5556 \
          --frequency=30 \
@@ -304,7 +304,7 @@ def eval_policy_with_sam(
                 if cfg.visualization and overlayed_img is not None:
                     # Convert RGB to BGR for OpenCV display
                     display_img = cv2.cvtColor(overlayed_img, cv2.COLOR_RGB2BGR)
-                    cv2.imshow("SAM2 Tracking (Outlined Prompt)", display_img)
+                    cv2.imshow("SAM2 Tracking (Outlined)", display_img)
                     cv2.waitKey(1)  # Non-blocking, just refresh
 
                 left_ee_state = right_ee_state = np.array([])

@@ -131,21 +131,15 @@ class GazeServer:
         selected_mask = None
 
         fig, ax = plt.subplots(figsize=(10, 8))
-        ax.imshow(first_frame_rgb)
+        img_layer = [ax.imshow(first_frame_rgb)]
         ax.set_title(
             f"Object {object_index}: L=FG | R=BG | SPACE=Preview | C=Clear | Enter=Confirm | Esc=Finish"
         )
-        mask_overlay_layer = None
 
         def show_mask(mask):
-            nonlocal mask_overlay_layer
-            if mask_overlay_layer is not None:
-                mask_overlay_layer.remove()
-            color = self._get_obj_color(object_index).astype(np.float32) / 255.0
-            rgba = np.array([color[0], color[1], color[2], 0.5], dtype=np.float32)
-            h, w = mask.shape[-2:]
-            mask_image = mask.reshape(h, w, 1) * rgba.reshape(1, 1, 4)
-            mask_overlay_layer = ax.imshow(mask_image)
+            # Generate the true morphological outline preview
+            overlay_rgb = self.apply_mask_overlay(first_frame_rgb, {object_index: mask})
+            img_layer[0].set_data(overlay_rgb)
             fig.canvas.draw()
 
         def onclick(event):
@@ -181,7 +175,7 @@ class GazeServer:
                 point_labels.clear()
                 selected_mask = None
                 ax.clear()
-                ax.imshow(first_frame_rgb)
+                img_layer[0] = ax.imshow(first_frame_rgb)
                 ax.set_title(
                     f"Object {object_index}: L=FG | R=BG | SPACE=Preview | C=Clear | Enter=Confirm | Esc=Finish"
                 )
@@ -203,11 +197,8 @@ class GazeServer:
         return selected_mask
 
     def _ask_add_next_object_gui(self, image_rgb, objects):
-        preview = image_rgb.copy()
-        for obj in objects:
-            mask = obj["mask"]
-            color = self._get_obj_color(obj["obj_id"]).astype(np.float32)
-            preview[mask] = (preview[mask].astype(np.float32) * 0.65 + color * 0.35).astype(np.uint8)
+        mask_dict = {obj["obj_id"]: obj["mask"] for obj in objects}
+        preview = self.apply_mask_overlay(image_rgb, mask_dict)
 
         fig, ax = plt.subplots(figsize=(10, 8))
         ax.imshow(preview)
@@ -288,10 +279,10 @@ class GazeServer:
         print(f" Tracker Initialized successfully. objects={len(self.obj_ids)}")
         return True
 
-    def apply_mask_overlay(self, frame_rgb, mask_data, darken_ratio=0.75, k1_size=5, k2_size=7):
+    def apply_mask_overlay(self, frame_rgb, mask_data, darken_ratio=1.0, k1_size=5, k2_size=11):
         """
-        Apply identical mathematical morphology visual prompting as the training pipeline.
-        Darkens object interior, adds white inner border and black outer border.
+        Apply identical mathematical morphology visual prompting as the training pipeline
+        (Mask 0: White/Black, Mask 1: Red/Green, with Boolean Exclusion).
         
         Args:
             frame_rgb: Original RGB image (H, W, 3) uint8 as NumPy array
@@ -307,58 +298,84 @@ class GazeServer:
 
         h, w = frame_rgb.shape[:2]
         
-        # Combine masks if multiple objects exist in a dict
-        combined_mask_np = None
+        # Extract masks into a list (order is important: obj_id 1 -> mask 0, obj_id 2 -> mask 1)
+        masks_list = []
         if isinstance(mask_data, dict):
             if len(mask_data) == 0:
                 return frame_rgb
-            combined_mask_np = np.zeros((h, w), dtype=bool)
-            for obj_id in sorted(mask_data.keys()):
-                mask = mask_data[obj_id]
-                if mask is None:
-                    continue
-                if mask.shape != (h, w):
-                    mask = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
+            max_id = max(mask_data.keys())
+            for i in range(1, max_id + 1):
+                if i in mask_data and mask_data[i] is not None:
+                    mask = mask_data[i]
+                    if mask.shape != (h, w):
+                        mask = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
+                    else:
+                        mask = mask.astype(bool)
+                    masks_list.append(mask)
                 else:
-                    mask = mask.astype(bool)
-                combined_mask_np |= mask
+                    masks_list.append(np.zeros((h, w), dtype=bool))
         else:
             mask = np.asarray(mask_data)
             if mask.shape != (h, w):
                 mask = cv2.resize(mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
             else:
                 mask = mask.astype(bool)
-            combined_mask_np = mask
+            masks_list.append(mask)
 
-        if combined_mask_np is None or not combined_mask_np.any():
+        if len(masks_list) == 0:
             return frame_rgb
+
+        # Stack masks to (1, num_masks, H, W)
+        masks_np = np.stack(masks_list, axis=0)[np.newaxis, ...] # (1, M, H, W)
 
         # --- Fast GPU Morphology Equivalent of pipeline_mask2overlay ---
         # 1. H2D (Numpy to Tensor)
-        # float32 for processing: (1, 3, H, W)
         image_t = torch.from_numpy(frame_rgb).permute(2, 0, 1).unsqueeze(0).to(self.device, dtype=torch.float32)
-        # mask is boolean, so float32 converts True/False to 1.0/0.0
-        mask_t = torch.from_numpy(combined_mask_np).unsqueeze(0).unsqueeze(0).to(self.device, dtype=torch.float32)
+        masks_t = torch.from_numpy(masks_np).to(self.device, dtype=torch.float32)
 
         # 2. Dilation Operations
         import torch.nn.functional as F
-        mask_k1 = F.max_pool2d(mask_t, kernel_size=k1_size, stride=1, padding=k1_size//2)
-        mask_k2 = F.max_pool2d(mask_t, kernel_size=k2_size, stride=1, padding=k2_size//2)
+        mask_k1 = F.max_pool2d(masks_t, kernel_size=k1_size, stride=1, padding=k1_size//2)
+        mask_k2 = F.max_pool2d(masks_t, kernel_size=k2_size, stride=1, padding=k2_size//2)
 
         # 3. Boolean Masks for rendering
-        S_inner = mask_t > 0.5
-        S_white = (mask_k1 > 0.5) & (~S_inner)
-        S_black = (mask_k2 > 0.5) & (~(mask_k1 > 0.5))
+        S_inner = masks_t > 0.5
+        S_k1_border = (mask_k1 > 0.5) & (~S_inner)
+        S_k2_border = (mask_k2 > 0.5) & (~(mask_k1 > 0.5))
 
         # 4. Pixel-wise Override
         I_prompt = image_t.clone()
-        # Interior texture is darkened (DISABLED by USER requesting transparency check with black fingers)
-        # I_prompt = torch.where(S_inner.expand_as(I_prompt), I_prompt * darken_ratio, I_prompt)
+        num_masks = masks_np.shape[1]
         
-        # White border
-        I_prompt = torch.where(S_white.expand_as(I_prompt), torch.tensor(255.0, device=self.device), I_prompt)
-        # Black border
-        I_prompt = torch.where(S_black.expand_as(I_prompt), torch.tensor(0.0, device=self.device), I_prompt)
+        S0_total = None
+        # --- Mask 0 (Pick) -> White / Black ---
+        if num_masks > 0:
+            S0_inner = S_inner[:, 0:1, :, :]
+            S0_white = S_k1_border[:, 0:1, :, :]
+            S0_black = S_k2_border[:, 0:1, :, :]
+            
+            # Calculate total footprint of Mask 0 for Boolean Exclusion
+            S0_total = S0_inner | S0_white | S0_black
+            
+            if darken_ratio < 1.0:
+                I_prompt = torch.where(S0_inner.expand_as(I_prompt), I_prompt * darken_ratio, I_prompt)
+                
+            I_prompt = torch.where(S0_white.expand_as(I_prompt), torch.tensor([255.0, 255.0, 255.0], device=self.device).view(1,3,1,1), I_prompt)
+            I_prompt = torch.where(S0_black.expand_as(I_prompt), torch.tensor([0.0, 0.0, 0.0], device=self.device).view(1,3,1,1), I_prompt)
+            
+        # --- Mask 1 (Place) -> Red / Green ---
+        if num_masks > 1:
+            S1_inner = S_inner[:, 1:2, :, :]
+            S1_red = S_k1_border[:, 1:2, :, :]
+            S1_green = S_k2_border[:, 1:2, :, :]
+            
+            # Apply Boolean Exclusion: Mask 1's borders cannot intersect Mask 0's footprint
+            if S0_total is not None:
+                S1_red = S1_red & (~S0_total)
+                S1_green = S1_green & (~S0_total)
+                
+            I_prompt = torch.where(S1_red.expand_as(I_prompt), torch.tensor([255.0, 0.0, 0.0], device=self.device).view(1,3,1,1), I_prompt)
+            I_prompt = torch.where(S1_green.expand_as(I_prompt), torch.tensor([0.0, 255.0, 0.0], device=self.device).view(1,3,1,1), I_prompt)
 
         # 5. D2H (Tensor to Numpy)
         I_prompt_uint8 = torch.clamp(I_prompt, 0, 255).to(torch.uint8)

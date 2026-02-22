@@ -413,7 +413,7 @@ def eval_policy_with_sam_attention(
                 # Show SAM2 only if attention viz is disabled
                 elif cfg.visualization and overlayed_img is not None:
                     display_img = cv2.cvtColor(overlayed_img, cv2.COLOR_RGB2BGR)
-                    cv2.imshow("SAM2 Tracking (30% Red Overlay)", display_img)
+                    cv2.imshow("SAM2 Tracking (Outlined)", display_img)
                     cv2.waitKey(1)
 
                 # 3. Execute Action
