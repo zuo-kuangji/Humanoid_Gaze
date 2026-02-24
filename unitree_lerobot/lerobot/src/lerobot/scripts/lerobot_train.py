@@ -349,6 +349,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
 
         if is_log_step:
             logging.info(train_tracker)
+            if output_dict and "mask_pick_scale" in output_dict:
+                logging.info("A1 mask_pick_scale(a)=%.6f", float(output_dict["mask_pick_scale"]))
             if wandb_logger:
                 wandb_log_dict = train_tracker.to_dict()
                 if output_dict:

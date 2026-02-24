@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
+import torch.nn.functional as F  # noqa: N812
 from einops import rearrange
 from PIL import Image
 
@@ -189,6 +190,94 @@ def _to_uint8_np_bhwc(img_t: torch.Tensor) -> np.ndarray:
     return rearrange(img_t.cpu().numpy(), "b c h w -> b h w c")
 
 
+def _to_mask_bhw(mask: Any) -> torch.Tensor:
+    """Normalize mask tensor shapes to (B, H, W) float32 in [0,1]."""
+    mask_t = torch.as_tensor(mask)
+
+    if mask_t.ndim == 4:
+        # Accept BCHW or BHWC with C in {1,3}
+        if mask_t.shape[1] == 1:
+            mask_t = mask_t[:, 0]
+        elif mask_t.shape[1] == 3:
+            mask_t = mask_t[:, 0]
+        elif mask_t.shape[-1] == 1:
+            mask_t = mask_t[..., 0]
+        elif mask_t.shape[-1] == 3:
+            mask_t = mask_t[..., 0]
+        else:
+            raise ValueError(f"pick mask must have 1 or 3 channels, got shape={tuple(mask_t.shape)}")
+    elif mask_t.ndim == 3:
+        # Accept BHW or a single HWC with C in {1,3}
+        if mask_t.shape[-1] == 1 and mask_t.shape[0] > 4 and mask_t.shape[1] > 4:
+            mask_t = mask_t[..., 0].unsqueeze(0)
+        elif mask_t.shape[-1] == 3 and mask_t.shape[0] > 4 and mask_t.shape[1] > 4:
+            mask_t = mask_t[..., 0].unsqueeze(0)
+    elif mask_t.ndim == 2:
+        mask_t = mask_t.unsqueeze(0)
+    else:
+        raise ValueError(f"Unsupported pick mask shape: {tuple(mask_t.shape)}")
+
+    mask_t = mask_t.to(dtype=torch.float32)
+    if mask_t.numel() > 0 and mask_t.max() > 1:
+        mask_t = mask_t / 255.0
+    return mask_t.clamp_(0.0, 1.0)
+
+
+def _build_pick_mask_tokens(
+    *,
+    pick_mask: torch.Tensor,
+    eagle_input_ids: torch.Tensor,
+    image_token_id: int,
+    tokens_per_tile: int,
+    image_size: int,
+) -> torch.Tensor:
+    """Create per-token pick mask aligned with eagle_input_ids, shape (B, S)."""
+    if eagle_input_ids.ndim != 2:
+        raise ValueError(f"eagle_input_ids must be (B, S), got {tuple(eagle_input_ids.shape)}")
+    if pick_mask.ndim != 3:
+        raise ValueError(f"pick_mask must be (B, H, W), got {tuple(pick_mask.shape)}")
+
+    bsz, seq_len = eagle_input_ids.shape
+    if pick_mask.shape[0] == 1 and bsz > 1:
+        pick_mask = pick_mask.expand(bsz, -1, -1)
+    elif pick_mask.shape[0] != bsz:
+        raise ValueError(
+            f"pick_mask batch mismatch: pick_mask={pick_mask.shape[0]}, eagle_input_ids={bsz}"
+        )
+    # Keep all intermediate tensors on the same device as eagle_input_ids.
+    pick_mask = pick_mask.to(device=eagle_input_ids.device, dtype=torch.float32)
+
+    grid_side = int(round(tokens_per_tile**0.5))
+    if grid_side * grid_side != tokens_per_tile:
+        # Fallback for unexpected config; keeps implementation robust.
+        grid_side = int(np.sqrt(tokens_per_tile))
+        grid_side = max(grid_side, 1)
+    tokens_per_image = grid_side * grid_side
+
+    resized = F.interpolate(
+        pick_mask.unsqueeze(1), size=(image_size, image_size), mode="nearest"
+    )  # (B,1,H',W')
+    pooled = F.adaptive_avg_pool2d(resized, output_size=(grid_side, grid_side))
+    pooled_flat = pooled.squeeze(1).reshape(bsz, tokens_per_image)  # (B, tokens_per_image)
+
+    out = torch.zeros((bsz, seq_len), dtype=torch.float32, device=eagle_input_ids.device)
+    for b in range(bsz):
+        vision_pos = eagle_input_ids[b] == image_token_id
+        n_vis = int(vision_pos.sum().item())
+        if n_vis == 0:
+            continue
+
+        base = pooled_flat[b]
+        if n_vis <= tokens_per_image:
+            values = base[:n_vis]
+        else:
+            repeats = (n_vis + tokens_per_image - 1) // tokens_per_image
+            values = base.repeat(repeats)[:n_vis]
+        out[b, vision_pos] = values
+
+    return out
+
+
 def _build_eagle_processor(tokenizer_assets_repo: str = DEFAULT_TOKENIZER_ASSETS_REPO) -> ProcessorMixin:
     # Validate that the cache directory is ready. If not, instruct the user.
     cache_dir = HF_LEROBOT_HOME / tokenizer_assets_repo
@@ -236,6 +325,7 @@ class GrootPackInputsStep(ProcessorStep):
     # Min-max normalization (SO100-like) applied BEFORE padding
     normalize_min_max: bool = True
     stats: dict[str, dict[str, Any]] | None = None
+    pick_mask_key: str = "observation.mask_pick"
 
     def __call__(self, transition: EnvTransition) -> EnvTransition:
         obs = transition.get(TransitionKey.OBSERVATION, {}) or {}
@@ -286,6 +376,11 @@ class GrootPackInputsStep(ProcessorStep):
             # Drop raw images to avoid confusion downstream
             for k in img_keys:
                 obs.pop(k, None)
+
+        # Optional pick mask: expected shape (B,H,W), (B,1,H,W), or (H,W)
+        pick_mask = obs.pop(self.pick_mask_key, None)
+        if pick_mask is not None:
+            comp["pick_mask"] = _to_mask_bhw(pick_mask)
 
         # 2) Language (string)
         lang = comp.get(self.language_key)
@@ -370,6 +465,14 @@ class GrootPackInputsStep(ProcessorStep):
             bsz = obs["video"].shape[0]
         if bsz is None:
             bsz = 1
+        if "pick_mask" in comp and isinstance(comp["pick_mask"], torch.Tensor):
+            pick_mask = comp["pick_mask"]
+            if pick_mask.shape[0] == 1 and bsz > 1:
+                comp["pick_mask"] = pick_mask.expand(bsz, -1, -1)
+            elif pick_mask.shape[0] != bsz:
+                raise ValueError(
+                    f"pick_mask batch mismatch: pick_mask={pick_mask.shape[0]}, batch={bsz}"
+                )
         comp["embodiment_id"] = torch.full((bsz,), emb_id, dtype=torch.long, device=device)
 
         transition[TransitionKey.OBSERVATION] = obs
@@ -558,6 +661,20 @@ class GrootEagleCollateStep(ProcessorStep):
         # Inject eagle_* tensors and remove the temporary content and raw video to free memory
         for k, v in batched.items():
             comp[k] = v
+
+        # Optional A1 input: create per-token pick mask aligned with eagle_input_ids.
+        pick_mask = comp.get("pick_mask")
+        if isinstance(pick_mask, torch.Tensor) and "eagle_input_ids" in comp:
+            image_size = int(self.proc.image_processor.size.get("height", 224))
+            comp["eagle_mask_pick_tokens"] = _build_pick_mask_tokens(
+                pick_mask=pick_mask,
+                eagle_input_ids=comp["eagle_input_ids"],
+                image_token_id=int(self.proc.image_token_id),
+                tokens_per_tile=int(self.proc.tokens_per_tile),
+                image_size=image_size,
+            )
+            comp.pop("pick_mask", None)
+
         comp.pop("eagle_content", None)
         obs.pop(
             "video", None

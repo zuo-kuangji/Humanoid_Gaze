@@ -117,6 +117,9 @@ class GrootPolicy(PreTrainedPolicy):
         loss = outputs.get("loss")
 
         loss_dict = {"loss": loss.item()}
+        action_head = getattr(self._groot_model, "action_head", None)
+        if action_head is not None and hasattr(action_head, "mask_pick_scale"):
+            loss_dict["mask_pick_scale"] = float(action_head.mask_pick_scale.detach().float().item())
 
         return loss, loss_dict
 

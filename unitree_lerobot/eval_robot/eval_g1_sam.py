@@ -17,7 +17,7 @@ Requirements:
        cd /home/g1/humanoid_gaze
        python unitree_lerobot/eval_robot/eval_g1_sam.py \
          --policy.path=/home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/groot_pick_handover_drinks_outlined25000 \
-         --repo_id=ZUO66/handover_drinks_outline \
+         --ZUO66/handover_drinks_outline\
          --use_sam=True \
          --gaze_port=5556 \
          --frequency=30 \

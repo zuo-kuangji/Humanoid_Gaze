@@ -152,6 +152,17 @@ class FlowmatchingActionHeadConfig(PretrainedConfig):
 
     vl_self_attention_cfg: dict = field(default=None)
     num_target_vision_tokens: int = field(default=32, metadata={"help": "Number of target vision tokens."})
+    use_mask_token_scaling: bool = field(
+        default=True, metadata={"help": "Enable A1 pick-mask token scaling before DiT cross-attention."}
+    )
+    mask_pick_token_key: str = field(
+        default="eagle_mask_pick_tokens", metadata={"help": "Input key for per-token pick mask."}
+    )
+    mask_pick_scale_init: float = field(
+        default=0.0, metadata={"help": "Initial value of learnable scalar a for pick-mask scaling."}
+    )
+    mask_scale_min: float = field(default=0.1, metadata={"help": "Minimum clamp value for token scale."})
+    mask_scale_max: float = field(default=4.0, metadata={"help": "Maximum clamp value for token scale."})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -208,6 +219,7 @@ class FlowmatchingActionHead(nn.Module):
         self.beta_dist = Beta(config.noise_beta_alpha, config.noise_beta_beta)
         self.num_timestep_buckets = config.num_timestep_buckets
         self.config = config
+        self.mask_pick_scale = nn.Parameter(torch.tensor(float(config.mask_pick_scale_init), dtype=torch.float32))
         self.set_trainable_parameters(config.tune_projector, config.tune_diffusion_model)
 
     def set_trainable_parameters(self, tune_projector: bool, tune_diffusion_model: bool):
@@ -219,6 +231,7 @@ class FlowmatchingActionHead(nn.Module):
             self.state_encoder.requires_grad_(False)
             self.action_encoder.requires_grad_(False)
             self.action_decoder.requires_grad_(False)
+            self.mask_pick_scale.requires_grad_(False)
             if self.config.add_pos_embed:
                 self.position_embedding.requires_grad_(False)
         if not tune_diffusion_model:
@@ -256,10 +269,34 @@ class FlowmatchingActionHead(nn.Module):
     def prepare_input(self, batch: dict) -> BatchFeature:
         return BatchFeature(data=batch)
 
-    def process_backbone_output(self, backbone_output: BatchFeature) -> BatchFeature:
+    def process_backbone_output(
+        self, backbone_output: BatchFeature, action_input: BatchFeature | None = None
+    ) -> BatchFeature:
         backbone_features = backbone_output["backbone_features"]
         backbone_features = self.vlln(backbone_features)
         backbone_features = self.vl_self_attention(backbone_features)
+
+        if self.config.use_mask_token_scaling and action_input is not None:
+            pick_mask_tokens = action_input.get(self.config.mask_pick_token_key)
+            if pick_mask_tokens is not None:
+                if pick_mask_tokens.ndim != 2:
+                    raise ValueError(
+                        f"{self.config.mask_pick_token_key} must be (B, S), got {tuple(pick_mask_tokens.shape)}"
+                    )
+                if pick_mask_tokens.shape[:2] != backbone_features.shape[:2]:
+                    raise ValueError(
+                        f"{self.config.mask_pick_token_key} shape mismatch: "
+                        f"mask={tuple(pick_mask_tokens.shape)}, features={tuple(backbone_features.shape)}"
+                    )
+
+                pick_mask_tokens = pick_mask_tokens.to(
+                    device=backbone_features.device,
+                    dtype=backbone_features.dtype,
+                )
+                scale = 1.0 + self.mask_pick_scale.to(backbone_features.dtype) * pick_mask_tokens.unsqueeze(-1)
+                scale = torch.clamp(scale, min=self.config.mask_scale_min, max=self.config.mask_scale_max)
+                backbone_features = backbone_features * scale
+
         backbone_output["backbone_features"] = backbone_features
         return backbone_output
 
@@ -267,7 +304,7 @@ class FlowmatchingActionHead(nn.Module):
         # Set frozen modules to eval
         self.set_frozen_modules_to_eval_mode()
 
-        backbone_output = self.process_backbone_output(backbone_output)
+        backbone_output = self.process_backbone_output(backbone_output, action_input)
 
         if self.config.expand_batch is not None:
             for k, v in backbone_output.items():
@@ -344,7 +381,7 @@ class FlowmatchingActionHead(nn.Module):
 
     @torch.no_grad()
     def get_action(self, backbone_output: BatchFeature, action_input: BatchFeature) -> BatchFeature:
-        backbone_output = self.process_backbone_output(backbone_output)
+        backbone_output = self.process_backbone_output(backbone_output, action_input)
 
         # Get vision and language embeddings.
         vl_embs = backbone_output.backbone_features
