@@ -133,15 +133,10 @@ class EagleBackbone(nn.Module):
 
     def forward_eagle(self, vl_input: BatchFeature) -> BatchFeature:
         eagle_prefix = "eagle_"
-        # Extra eagle_* tensors may exist for downstream heads (e.g. A1 mask tokens)
-        # but are not valid kwargs for the Eagle backbone forward.
-        excluded_eagle_keys = {"eagle_mask_pick_tokens"}
         eagle_input = {
-            k.removeprefix(eagle_prefix): v
-            for k, v in vl_input.items()
-            if k.startswith(eagle_prefix) and k not in excluded_eagle_keys
+            k.removeprefix(eagle_prefix): v for k, v in vl_input.items() if k.startswith(eagle_prefix)
         }
-        eagle_input.pop("image_sizes", None)
+        del eagle_input["image_sizes"]
 
         eagle_output = self.eagle_model(**eagle_input, output_hidden_states=True, return_dict=True)
         eagle_features = eagle_output.hidden_states[self.select_layer]
@@ -373,6 +368,9 @@ class GR00TN15(PreTrainedModel):
         pretrained_model = super().from_pretrained(
             local_model_path, local_model_path=local_model_path, **kwargs
         )
+
+        if hasattr(pretrained_model.action_head, "reset_pick_mask_control_parameters"):
+            pretrained_model.action_head.reset_pick_mask_control_parameters()
 
         pretrained_model.backbone.set_trainable_parameters(tune_visual=tune_visual, tune_llm=tune_llm)
         pretrained_model.action_head.set_trainable_parameters(
