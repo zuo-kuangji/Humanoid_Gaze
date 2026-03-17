@@ -369,6 +369,9 @@ class GR00TN15(PreTrainedModel):
             local_model_path, local_model_path=local_model_path, **kwargs
         )
 
+        if hasattr(pretrained_model.action_head, "reset_pick_mask_control_parameters"):
+            pretrained_model.action_head.reset_pick_mask_control_parameters()
+
         pretrained_model.backbone.set_trainable_parameters(tune_visual=tune_visual, tune_llm=tune_llm)
         pretrained_model.action_head.set_trainable_parameters(
             tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model

@@ -98,7 +98,7 @@ class GrootPolicy(PreTrainedPolicy):
         Delegates to Isaac-GR00T model.forward when inputs are compatible.
         """
         # Build a clean input dict for GR00T: keep only tensors GR00T consumes
-        allowed_base = {"state", "state_mask", "action", "action_mask", "embodiment_id"}
+        allowed_base = {"state", "state_mask", "action", "action_mask", "embodiment_id", "pick_mask"}
         groot_inputs = {
             k: v
             for k, v in batch.items()
@@ -117,6 +117,9 @@ class GrootPolicy(PreTrainedPolicy):
         loss = outputs.get("loss")
 
         loss_dict = {"loss": loss.item()}
+        action_head = getattr(self._groot_model, "action_head", None)
+        if action_head is not None and hasattr(action_head, "get_pick_mask_debug_metrics"):
+            loss_dict.update(action_head.get_pick_mask_debug_metrics())
 
         return loss, loss_dict
 
@@ -131,7 +134,7 @@ class GrootPolicy(PreTrainedPolicy):
         # Build a clean input dict for GR00T: keep only tensors GR00T consumes
         # Preprocessing is handled by the processor pipeline, so we just filter the batch
         # NOTE: During inference, we should NOT pass action/action_mask (that's what we're predicting)
-        allowed_base = {"state", "state_mask", "embodiment_id"}
+        allowed_base = {"state", "state_mask", "embodiment_id", "pick_mask"}
         groot_inputs = {
             k: v
             for k, v in batch.items()

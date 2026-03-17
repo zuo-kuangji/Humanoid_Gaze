@@ -122,8 +122,12 @@ def rewrite_language(
 
 	updated, skipped = 0, 0
 	for json_path in json_paths:
-		with open(json_path, encoding="utf-8") as f:
-			payload = json.load(f)
+		try:
+			with open(json_path, encoding="utf-8") as f:
+				payload = json.load(f)
+		except json.decoder.JSONDecodeError as e:
+			print(f"ERROR: Malformed JSON detected in {json_path}")
+			raise e
 
 		changed, old_value = _set_nested_value(payload, key_path, new_language)
 		if not changed:

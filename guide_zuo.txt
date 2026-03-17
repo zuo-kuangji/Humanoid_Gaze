@@ -15,22 +15,22 @@ python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
   --robot-type Unitree_G1_Inspire_Head \
   --no-push-to-hub
 处理完数据后，再上传
-huggingface-cli upload ZUO66/handover_drinks_outline \
-  /home/g1/.cache/huggingface/lerobot/ZUO66/handover_drinks_outline \
+huggingface-cli upload ZUO66/pick_crumpled_paper_ball_outline1 \
+  /home/g1/.cache/huggingface/lerobot/ZUO66/pick_crumpled_paper_ball_outline1 \
   . \
   --repo-type dataset
 
 
 # 上传 checkpoint 内容到模型仓库根目录
-huggingface-cli upload ZUO66/groot_pick_vegetable_overlay \
-   /root/autodl-tmp/outputs/train/groot_pick_vegetable_overlay/checkpoints/015000/pretrained_model \
+huggingface-cli upload ZUO66/groot_pick_crumpled_paper_ball_outlined30000 \
+   /root/autodl-tmp/outputs/train/groot_pick_crumpled_paper_ball_outlined/checkpoints/030000/pretrained_model \
   . \
   --repo-type model
 服务器下载：
 huggingface-cli login
-huggingface-cli download ZUO66/groot_mask_handovercup \
+huggingface-cli download ZUO66/groot_pick_crumpled_paper_ball_outlined30000 \
   --repo-type model \
-  --local-dir /home/g1/zuo/humanoid_lerobot/unitree_lerobot/lerobot/outputs/train/groot_mask_handovercup
+  --local-dir /home/g1/humanoid_gaze/unitree_lerobot/lerobot/outputs/train/groot_pick_crumpled_paper_ball_outlined30000
 
 python unitree_lerobot/utils/convert_unitree_json_to_lerobot.py \
     --raw-dir /home/g1/zuo/xr_teleoperate/teleop/utils/data/handover_drinks \
@@ -346,7 +346,7 @@ hf download ZUO66/groot_pick_paper_ball_30000 \
 cd /root/Humanoid_lerobot/unitree_lerobot/lerobot
 unset OMP_NUM_THREADS
 nohup python src/lerobot/scripts/lerobot_train.py \
-  --dataset.repo_id=ZUO66/handover_drinks_outline \
+  --dataset.repo_id=ZUO66/pick_crumpled_paper_ball_outline1 \
   --dataset.revision=main \
   --policy.type=groot \
   --policy.push_to_hub=false \
@@ -355,17 +355,17 @@ nohup python src/lerobot/scripts/lerobot_train.py \
   --policy.tune_projector=true \
   --policy.tune_diffusion_model=true \
   --policy.use_amp=true \
-  --output_dir=/root/autodl-tmp/outputs/train/groot_handover_drinks_outlined \
-  --steps=30000 \
+  --output_dir=/root/autodl-tmp/outputs/train/groot_pick_crumpled_paper_ball_outlined1 \
+  --steps=25000 \
   --batch_size=90 \
   --num_workers=10 \
   --save_freq=5000 \
   --save_checkpoint=true \
   --wandb.enable=true \
-  --wandb.project=zuo_groot_handover_drinks_outlined\
+  --wandb.project=zuo_groot_pick_crumpled_paper_ball_outlined\
   --wandb.disable_artifact=true \
-  --job_name=groot_handover_drinks_outlined   \
-> /root/autodl-tmp/groot_handover_drinks_outlined.log 2>&1 &
+  --job_name=groot_pick_crumpled_paper_ball_outlined1   \
+> /root/autodl-tmp/groot_pick_crumpled_paper_ball_outlined.log 2>&1 &
 
 
 nohup python src/lerobot/scripts/lerobot_train.py \

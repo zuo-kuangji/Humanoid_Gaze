@@ -189,6 +189,43 @@ def _to_uint8_np_bhwc(img_t: torch.Tensor) -> np.ndarray:
     return rearrange(img_t.cpu().numpy(), "b c h w -> b h w c")
 
 
+def _to_mask_bhw(mask: Any) -> torch.Tensor:
+    """Normalize mask tensor to (B, H, W) float in [0,1]."""
+    mask_t = torch.as_tensor(mask)
+
+    if mask_t.ndim == 5:
+        # (B, T, C, H, W) or (B, T, H, W, C)
+        mask_t = mask_t[:, 0]
+
+    if mask_t.ndim == 4:
+        # BCHW
+        if mask_t.shape[1] in (1, 3):
+            mask_t = mask_t[:, 0]
+        # BHWC
+        elif mask_t.shape[-1] in (1, 3):
+            mask_t = mask_t[..., 0]
+        else:
+            raise ValueError(f"Unsupported pick mask shape: {tuple(mask_t.shape)}")
+    elif mask_t.ndim == 3:
+        # HWC (single sample)
+        if mask_t.shape[-1] in (1, 3) and mask_t.shape[0] > 4 and mask_t.shape[1] > 4:
+            mask_t = mask_t[..., 0].unsqueeze(0)
+        # CHW (single sample)
+        elif mask_t.shape[0] in (1, 3) and mask_t.shape[1] > 4 and mask_t.shape[2] > 4:
+            mask_t = mask_t[0].unsqueeze(0)
+        # Else assume BHW
+    elif mask_t.ndim == 2:
+        mask_t = mask_t.unsqueeze(0)
+    else:
+        raise ValueError(f"Unsupported pick mask shape: {tuple(mask_t.shape)}")
+
+    mask_t = mask_t.to(dtype=torch.float32)
+    if mask_t.numel() > 0 and mask_t.max() > 1:
+        mask_t = mask_t / 255.0
+    mask_t = torch.nan_to_num(mask_t, nan=0.0, posinf=1.0, neginf=0.0)
+    return mask_t.clamp_(0.0, 1.0)
+
+
 def _build_eagle_processor(tokenizer_assets_repo: str = DEFAULT_TOKENIZER_ASSETS_REPO) -> ProcessorMixin:
     # Validate that the cache directory is ready. If not, instruct the user.
     cache_dir = HF_LEROBOT_HOME / tokenizer_assets_repo
@@ -236,6 +273,7 @@ class GrootPackInputsStep(ProcessorStep):
     # Min-max normalization (SO100-like) applied BEFORE padding
     normalize_min_max: bool = True
     stats: dict[str, dict[str, Any]] | None = None
+    pick_mask_key: str = "observation.mask_pick"
 
     def __call__(self, transition: EnvTransition) -> EnvTransition:
         obs = transition.get(TransitionKey.OBSERVATION, {}) or {}
@@ -286,6 +324,11 @@ class GrootPackInputsStep(ProcessorStep):
             # Drop raw images to avoid confusion downstream
             for k in img_keys:
                 obs.pop(k, None)
+
+        # Optional pick mask for control branch
+        pick_mask = obs.pop(self.pick_mask_key, None)
+        if pick_mask is not None:
+            comp["pick_mask"] = _to_mask_bhw(pick_mask)
 
         # 2) Language (string)
         lang = comp.get(self.language_key)
@@ -370,6 +413,14 @@ class GrootPackInputsStep(ProcessorStep):
             bsz = obs["video"].shape[0]
         if bsz is None:
             bsz = 1
+        if "pick_mask" in comp and isinstance(comp["pick_mask"], torch.Tensor):
+            pick_mask = comp["pick_mask"]
+            if pick_mask.shape[0] == 1 and bsz > 1:
+                comp["pick_mask"] = pick_mask.expand(bsz, -1, -1)
+            elif pick_mask.shape[0] != bsz:
+                raise ValueError(
+                    f"pick_mask batch mismatch: pick_mask={pick_mask.shape[0]}, batch={bsz}"
+                )
         comp["embodiment_id"] = torch.full((bsz,), emb_id, dtype=torch.long, device=device)
 
         transition[TransitionKey.OBSERVATION] = obs
@@ -396,6 +447,7 @@ class GrootPackInputsStep(ProcessorStep):
             "embodiment_tag": self.embodiment_tag,
             "embodiment_mapping": self.embodiment_mapping,
             "normalize_min_max": self.normalize_min_max,
+            "pick_mask_key": self.pick_mask_key,
         }
 
     def state_dict(self) -> dict[str, torch.Tensor]:

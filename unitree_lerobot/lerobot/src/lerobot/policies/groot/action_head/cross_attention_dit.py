@@ -27,6 +27,18 @@ from diffusers.models.embeddings import (
 from torch import nn
 
 
+def _zero_init_cross_attention_out(attn: Attention) -> None:
+    """Zero-init only control output projection so branch starts as a no-op."""
+    to_out = getattr(attn, "to_out", None)
+    if isinstance(to_out, (list, tuple, nn.ModuleList)) and len(to_out) > 0:
+        to_out = to_out[0]
+    if to_out is not None:
+        if hasattr(to_out, "weight") and to_out.weight is not None:
+            nn.init.zeros_(to_out.weight)
+        if hasattr(to_out, "bias") and to_out.bias is not None:
+            nn.init.zeros_(to_out.bias)
+
+
 class TimestepEncoder(nn.Module):
     def __init__(self, embedding_dim, compute_dtype=torch.float32):
         super().__init__()
@@ -87,6 +99,8 @@ class BasicTransformerBlock(nn.Module):
         ff_inner_dim: int | None = None,
         ff_bias: bool = True,
         attention_out_bias: bool = True,
+        enable_control_cross_attention: bool = False,
+        zero_init_control: bool = True,
     ):
         super().__init__()
         self.dim = dim
@@ -128,6 +142,20 @@ class BasicTransformerBlock(nn.Module):
             upcast_attention=upcast_attention,
             out_bias=attention_out_bias,
         )
+        self.attn_control = None
+        if enable_control_cross_attention and cross_attention_dim is not None:
+            self.attn_control = Attention(
+                query_dim=dim,
+                heads=num_attention_heads,
+                dim_head=attention_head_dim,
+                dropout=dropout,
+                bias=attention_bias,
+                cross_attention_dim=cross_attention_dim,
+                upcast_attention=upcast_attention,
+                out_bias=attention_out_bias,
+            )
+            if zero_init_control:
+                _zero_init_cross_attention_out(self.attn_control)
 
         # 3. Feed-forward
         self.norm3 = nn.LayerNorm(dim, norm_eps, norm_elementwise_affine)
@@ -150,6 +178,7 @@ class BasicTransformerBlock(nn.Module):
         attention_mask: torch.Tensor | None = None,
         encoder_hidden_states: torch.Tensor | None = None,
         encoder_attention_mask: torch.Tensor | None = None,
+        control_encoder_hidden_states: torch.Tensor | None = None,
         temb: torch.LongTensor | None = None,
     ) -> torch.Tensor:
         # 0. Self-Attention
@@ -167,6 +196,13 @@ class BasicTransformerBlock(nn.Module):
             attention_mask=attention_mask,
             # encoder_attention_mask=encoder_attention_mask,
         )
+        if self.attn_control is not None and control_encoder_hidden_states is not None:
+            control_attn_output = self.attn_control(
+                norm_hidden_states,
+                encoder_hidden_states=control_encoder_hidden_states,
+                attention_mask=attention_mask,
+            )
+            attn_output = attn_output + control_attn_output
         if self.final_dropout:
             attn_output = self.final_dropout(attn_output)
 
@@ -208,6 +244,8 @@ class DiT(ModelMixin, ConfigMixin):
         positional_embeddings: str | None = "sinusoidal",
         interleave_self_attention=False,
         cross_attention_dim: int | None = None,
+        enable_control_cross_attention: bool = False,
+        zero_init_control: bool = True,
     ):
         super().__init__()
 
@@ -241,6 +279,8 @@ class DiT(ModelMixin, ConfigMixin):
                     num_positional_embeddings=self.config.max_num_positional_embeddings,
                     final_dropout=final_dropout,
                     cross_attention_dim=curr_cross_attention_dim,
+                    enable_control_cross_attention=enable_control_cross_attention,
+                    zero_init_control=zero_init_control,
                 )
             ]
         self.transformer_blocks = nn.ModuleList(all_blocks)
@@ -258,6 +298,7 @@ class DiT(ModelMixin, ConfigMixin):
         self,
         hidden_states: torch.Tensor,  # Shape: (B, T, D)
         encoder_hidden_states: torch.Tensor,  # Shape: (B, S, D)
+        control_encoder_hidden_states: torch.Tensor | None = None,  # Shape: (B, S_ctrl, D)
         timestep: torch.LongTensor | None = None,
         encoder_attention_mask: torch.Tensor | None = None,
         return_all_hidden_states: bool = False,
@@ -279,6 +320,7 @@ class DiT(ModelMixin, ConfigMixin):
                     attention_mask=None,
                     encoder_hidden_states=None,
                     encoder_attention_mask=None,
+                    control_encoder_hidden_states=None,
                     temb=temb,
                 )
             else:
@@ -287,6 +329,7 @@ class DiT(ModelMixin, ConfigMixin):
                     attention_mask=None,
                     encoder_hidden_states=encoder_hidden_states,
                     encoder_attention_mask=None,
+                    control_encoder_hidden_states=control_encoder_hidden_states,
                     temb=temb,
                 )
             all_hidden_states.append(hidden_states)

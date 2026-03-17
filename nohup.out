@@ -1,0 +1,43 @@
+Downloading 'policy_preprocessor_step_2_groot_pack_inputs_v3.safetensors' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/47d6a8c108bfa9ccb2f86be156e4469eea2f279d5a8a7de7171183cbd6a2daec.incomplete'
+Downloading 'model.safetensors' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/6eb4ca2549394883b92062a72e250317c04bd6f8583d9e491a129e517ca712cc.incomplete'
+Downloading 'policy_preprocessor.json' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/120161f63cbb3798cbaaad383abc365002f5fe0d.incomplete'
+Downloading 'train_config.json' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/5817354b2b1f9c56b19266c2e985d230f528d0ff.incomplete'
+Downloading 'config.json' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/27ec30d7743c0f364efaa07cac036b6aefa6bb2d.incomplete'
+Downloading 'policy_postprocessor.json' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/a5864c812e32f5aef124302e8ef9d5254c00e15b.incomplete'
+Downloading '.gitattributes' to '/home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/a6344aac8c09253b3b630fb776ae94478aa0275b.incomplete'
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/120161f63cbb3798cbaaad383abc365002f5fe0d
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/5817354b2b1f9c56b19266c2e985d230f528d0ff
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/27ec30d7743c0f364efaa07cac036b6aefa6bb2d
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/a5864c812e32f5aef124302e8ef9d5254c00e15b
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/a6344aac8c09253b3b630fb776ae94478aa0275b
+Download complete. Moving file to /home/g1/.cache/huggingface/hub/models--ZUO66--pick_paperball_outlined/blobs/47d6a8c108bfa9ccb2f86be156e4469eea2f279d5a8a7de7171183cbd6a2daec
+Cancellation requested; stopping current tasks.
+[33m⚠️  Warning: 'huggingface-cli download' is deprecated. Use 'hf download' instead.[0m
+Traceback (most recent call last):
+  File "/home/g1/miniconda3/envs/humanoid_gaze/bin/huggingface-cli", line 7, in <module>
+    sys.exit(main())
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/huggingface_hub/commands/huggingface_cli.py", line 61, in main
+    service.run()
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/huggingface_hub/commands/download.py", line 157, in run
+    print(self._download())  # Print path to downloaded files
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/huggingface_hub/commands/download.py", line 191, in _download
+    return snapshot_download(
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/huggingface_hub/_snapshot_download.py", line 332, in snapshot_download
+    thread_map(
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/tqdm/contrib/concurrent.py", line 69, in thread_map
+    return _executor_map(ThreadPoolExecutor, fn, *iterables, **tqdm_kwargs)
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/tqdm/contrib/concurrent.py", line 51, in _executor_map
+    return list(tqdm_class(ex.map(fn, *iterables, chunksize=chunksize), **kwargs))
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/site-packages/tqdm/std.py", line 1169, in __iter__
+    for obj in iterable:
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/concurrent/futures/_base.py", line 621, in result_iterator
+    yield _result_or_cancel(fs.pop())
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/concurrent/futures/_base.py", line 319, in _result_or_cancel
+    return fut.result(timeout)
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/concurrent/futures/_base.py", line 453, in result
+    self._condition.wait(timeout)
+  File "/home/g1/miniconda3/envs/humanoid_gaze/lib/python3.10/threading.py", line 320, in wait
+    waiter.acquire()
+KeyboardInterrupt

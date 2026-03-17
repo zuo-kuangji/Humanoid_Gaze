@@ -349,6 +349,11 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
 
         if is_log_step:
             logging.info(train_tracker)
+            if output_dict:
+                pickmask_debug = {k: v for k, v in output_dict.items() if k.startswith("pickmask_")}
+                if pickmask_debug:
+                    pretty = ", ".join(f"{k}={float(v):.6f}" for k, v in sorted(pickmask_debug.items()))
+                    logging.info("[pickmask-debug] %s", pretty)
             if wandb_logger:
                 wandb_log_dict = train_tracker.to_dict()
                 if output_dict:
