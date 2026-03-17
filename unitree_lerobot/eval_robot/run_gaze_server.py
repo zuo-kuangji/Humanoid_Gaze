@@ -98,10 +98,14 @@ class GazeServer:
                 self.socket.send_pyobj(response)
                 
             elif command == 'track':
+                return_pick_mask = bool(msg.get("return_pick_mask", False))
                 if not self.tracker_initialized:
                     response["mask"] = None
                     response["masks_by_obj"] = None
                     response["overlayed_image"] = image_rgb
+                    if return_pick_mask:
+                        h, w = image_rgb.shape[:2]
+                        response["pick_mask"] = np.zeros((h, w, 3), dtype=np.uint8)
                 else:
                     masks_by_obj = self.step(image_rgb)
                     overlayed_image = self.apply_mask_overlay(image_rgb, masks_by_obj)
@@ -112,6 +116,8 @@ class GazeServer:
                         "masks_by_obj": masks_by_obj,
                         "overlayed_image": overlayed_image,
                     }
+                    if return_pick_mask:
+                        response["pick_mask"] = self._mask_to_pick_rgb(combined_mask, image_rgb.shape[:2])
                 self.socket.send_pyobj(response)
                 
             elif command == 'ping':
@@ -279,17 +285,18 @@ class GazeServer:
         print(f" Tracker Initialized successfully. objects={len(self.obj_ids)}")
         return True
 
-    def apply_mask_overlay(self, frame_rgb, mask_data, darken_ratio=1.0, k1_size=5, k2_size=11):
+    def apply_mask_overlay(self, frame_rgb, mask_data, darken_ratio=1.0, k1_size=5, k2_size=7):
         """
-        Apply identical mathematical morphology visual prompting as the training pipeline
-        (Mask 0: White/Black, Mask 1: Red/Green, with Boolean Exclusion).
+        Apply mathematical morphology visual prompting consistent with
+        pipeline_mask2overlay.py in its default outline_bw mode
+        (Mask 0: outer white ring + inner black edge, Mask 1: Red/Green).
         
         Args:
             frame_rgb: Original RGB image (H, W, 3) uint8 as NumPy array
             mask_data: None, single mask ndarray, or dict[obj_id] = mask ndarray
-            darken_ratio: The ratio to darken the S_inner pixels
-            k1_size: Inner white margin kernel size
-            k2_size: Outer black margin kernel size
+            darken_ratio: Kept for API compatibility; outline_bw does not darken mask 0
+            k1_size: Outer white margin / inner black edge kernel size
+            k2_size: Outer place-mask green margin kernel size
         Returns:
             Overlayed RGB image (H, W, 3) uint8
         """
@@ -337,6 +344,7 @@ class GazeServer:
         import torch.nn.functional as F
         mask_k1 = F.max_pool2d(masks_t, kernel_size=k1_size, stride=1, padding=k1_size//2)
         mask_k2 = F.max_pool2d(masks_t, kernel_size=k2_size, stride=1, padding=k2_size//2)
+        eroded_k1 = 1.0 - F.max_pool2d(1.0 - masks_t, kernel_size=k1_size, stride=1, padding=k1_size//2)
 
         # 3. Boolean Masks for rendering
         S_inner = masks_t > 0.5
@@ -348,18 +356,16 @@ class GazeServer:
         num_masks = masks_np.shape[1]
         
         S0_total = None
-        # --- Mask 0 (Pick) -> White / Black ---
+        # --- Mask 0 (Pick) -> pipeline_mask2overlay.py outline_bw ---
         if num_masks > 0:
             S0_inner = S_inner[:, 0:1, :, :]
             S0_white = S_k1_border[:, 0:1, :, :]
-            S0_black = S_k2_border[:, 0:1, :, :]
-            
-            # Calculate total footprint of Mask 0 for Boolean Exclusion
-            S0_total = S0_inner | S0_white | S0_black
-            
-            if darken_ratio < 1.0:
-                I_prompt = torch.where(S0_inner.expand_as(I_prompt), I_prompt * darken_ratio, I_prompt)
-                
+            # Inner black contour computed from erosion, matching outline_bw.
+            S0_black = S0_inner & (~(eroded_k1[:, 0:1, :, :] > 0.5))
+
+            # Match pipeline exclusion footprint: mask interior plus outer white ring.
+            S0_total = S0_inner | S0_white
+
             I_prompt = torch.where(S0_white.expand_as(I_prompt), torch.tensor([255.0, 255.0, 255.0], device=self.device).view(1,3,1,1), I_prompt)
             I_prompt = torch.where(S0_black.expand_as(I_prompt), torch.tensor([0.0, 0.0, 0.0], device=self.device).view(1,3,1,1), I_prompt)
             
@@ -401,6 +407,25 @@ class GazeServer:
             return combined
         mask = np.asarray(masks_by_obj)
         return mask.astype(bool) if mask.size > 0 else None
+
+    def _mask_to_pick_rgb(self, mask, target_hw):
+        h, w = target_hw
+        if mask is None:
+            return np.zeros((h, w, 3), dtype=np.uint8)
+
+        mask_np = np.asarray(mask)
+        if mask_np.ndim == 3:
+            if mask_np.shape[-1] >= 1:
+                mask_np = mask_np[..., 0]
+            elif mask_np.shape[0] >= 1:
+                mask_np = mask_np[0]
+            else:
+                mask_np = np.squeeze(mask_np)
+        if mask_np.shape != (h, w):
+            mask_np = cv2.resize(mask_np.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST)
+
+        pick_u8 = (mask_np.astype(bool).astype(np.uint8)) * 255
+        return np.repeat(pick_u8[:, :, None], 3, axis=2)
 
     def step(self, frame_rgb):
         self.frame_idx += 1
